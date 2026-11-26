@@ -32,7 +32,7 @@ import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PURCHASE_ORDER_PERMISSIONS } from '../../config/permissions.config';
 import { ListStatCard, ListStatStripComponent } from '../../../../core/components/list-stat-strip/list-stat-strip.component';
-import { ChevronRight, CircleAlert, CircleDollarSign, ClipboardList, LucideAngularModule, Package, Plus, ShoppingBag } from 'lucide-angular';
+import { ChevronRight, CircleAlert, CircleDollarSign, ClipboardList, LucideAngularModule, Package, ShoppingBag } from 'lucide-angular';
 
 @Component({
   selector: 'app-purchase-order-list',
@@ -47,7 +47,6 @@ export class PurchaseOrderListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly Math = Math;
-  readonly Plus = Plus;
   readonly ChevronRight = ChevronRight;
   readonly cardSkeletonSlots = [1, 2, 3, 4];
 

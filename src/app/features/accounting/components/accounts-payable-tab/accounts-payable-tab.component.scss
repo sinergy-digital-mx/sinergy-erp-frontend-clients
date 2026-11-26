@@ -73,48 +73,6 @@
   color: #64748b;
 }
 
-.payable-summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.5rem;
-  max-width: 80rem;
-}
-
-.payable-summary--single {
-  max-width: 64rem;
-}
-
-.payable-summary__card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.2rem;
-  padding: 0.65rem 0.8rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #fff;
-}
-
-.payable-summary__label {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: #64748b;
-}
-
-.payable-summary__value {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.payable-summary__meta {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #475569;
-}
-
 .rate-cell {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
@@ -261,10 +219,3 @@
   text-align: right;
 }
 
-@media (max-width: 720px) {
-  .payable-summary,
-  .payable-summary--single {
-    grid-template-columns: 1fr;
-    max-width: none;
-  }
-}

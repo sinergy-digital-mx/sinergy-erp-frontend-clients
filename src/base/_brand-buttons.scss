@@ -5,18 +5,24 @@
   justify-content: center;
   gap: 0.4rem;
   box-sizing: border-box;
-  border: 1px solid #3730a3;
+  border: 1px solid #4f46e5;
   cursor: pointer;
   font-weight: 600;
   font-family: inherit;
+  line-height: 1;
   color: #fff;
   background: linear-gradient(180deg, #4f46e5 0%, #4338ca 100%);
   box-shadow: none;
   transition: background 0.15s ease, border-color 0.15s ease;
 
+  i {
+    font-size: 0.75rem;
+    line-height: 1;
+  }
+
   &:hover:not(:disabled) {
     background: linear-gradient(180deg, #4338ca 0%, #3730a3 100%);
-    border-color: #312e81;
+    border-color: #4338ca;
   }
 
   &:active:not(:disabled) {
@@ -67,12 +73,12 @@
 .btn_primary {
   color: #fff !important;
   background: linear-gradient(180deg, #4f46e5 0%, #4338ca 100%) !important;
-  border: 1px solid #3730a3 !important;
+  border: 1px solid #4f46e5 !important;
   box-shadow: none !important;
 
   &:hover:not(:disabled) {
     background: linear-gradient(180deg, #4338ca 0%, #3730a3 100%) !important;
-    border-color: #312e81 !important;
+    border-color: #4338ca !important;
     filter: none;
     box-shadow: none !important;
   }

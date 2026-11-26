@@ -37,9 +37,38 @@
           @for (row of detail()!.orders; track row.id) {
             <tr>
               <td>
-                <button type="button" class="folio-link" (click)="openSalesOrder(row)">
-                  {{ row.folio || row.id.substring(0, 8) }}
-                </button>
+                <div class="folio-actions">
+                  <button
+                    type="button"
+                    class="folio-action folio-action--eye"
+                    matTooltip="Ver el ticket de compra"
+                    matTooltipClass="folio-action-tooltip"
+                    matTooltipPosition="above"
+                    aria-label="Ver el ticket de compra"
+                    (click)="openTicket(row)">
+                    <i class="fi fi-rr-eye" aria-hidden="true"></i>
+                  </button>
+                  <button
+                    type="button"
+                    class="folio-action folio-action--pdf"
+                    [disabled]="openingPdfId() === row.id"
+                    matTooltip="Ver el PDF de la factura"
+                    matTooltipClass="folio-action-tooltip"
+                    matTooltipPosition="above"
+                    aria-label="Ver el PDF de la factura"
+                    (click)="openInvoicePdf(row)">
+                    PDF
+                  </button>
+                  <button
+                    type="button"
+                    class="folio-link"
+                    matTooltip="Abrir la orden de venta"
+                    matTooltipClass="folio-action-tooltip"
+                    matTooltipPosition="above"
+                    (click)="openSalesOrder(row)">
+                    {{ row.folio || row.id.substring(0, 8) }}
+                  </button>
+                </div>
               </td>
               <td>{{ formatDate(row.created_at) }}</td>
               <td>{{ row.customer_display_name || '—' }}</td>

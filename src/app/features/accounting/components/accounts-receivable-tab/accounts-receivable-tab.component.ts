@@ -2,7 +2,9 @@ import { Component, Input, OnChanges, OnInit, SimpleChanges, TemplateRef, ViewCh
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
+import { Banknote, CircleDollarSign, Users, Wallet } from 'lucide-angular';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
+import { ListStatCard, ListStatStripComponent } from '../../../../core/components/list-stat-strip/list-stat-strip.component';
 import { IColumn, IDatatableConfig, IPaginationEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { ToastService } from '../../../../core/services/toast.service';
 import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
@@ -14,7 +16,7 @@ import { currencyViewFromQuery, pageFromQuery, replaceQuery } from '../../utils/
 @Component({
   selector: 'app-accounts-receivable-tab',
   standalone: true,
-  imports: [CommonModule, DatatableWrapperComponent],
+  imports: [CommonModule, DatatableWrapperComponent, ListStatStripComponent],
   templateUrl: './accounts-receivable-tab.component.html',
   styleUrl: './accounts-receivable-tab.component.scss',
 })
@@ -98,6 +100,70 @@ export class AccountsReceivableTabComponent implements OnInit, OnChanges {
       loading: true,
     }));
     this.loadPage(1);
+  }
+
+  statCards(): ListStatCard[] {
+    const summary = this.summary();
+    if (!summary) return [];
+    const totalOrders = this.totalOrderCount();
+    const share = (count: number) => (totalOrders > 0 ? Math.min(100, Math.round((count / totalOrders) * 100)) : 0);
+    const cards: ListStatCard[] = [
+      {
+        key: 'accounts',
+        label: 'Cuentas con saldo',
+        hint: 'Razones sociales con órdenes pendientes.',
+        tone: 'slate',
+        icon: Users,
+        value: Number(summary.total_accounts ?? 0),
+        share: 100,
+        footer: 'Con saldo',
+        footerKind: 'quiet',
+      },
+    ];
+    if (this.showsMxn()) {
+      const count = Number(summary.total_pending_orders_mxn ?? 0);
+      cards.push({
+        key: 'mxn',
+        label: 'Por cobrar en pesos',
+        hint: 'Órdenes pendientes en pesos.',
+        tone: 'indigo',
+        icon: CircleDollarSign,
+        value: count,
+        displayValue: this.formatMoney(summary.total_amount_pending_mxn, 'MXN'),
+        share: share(count),
+        footer: `${count} OV`,
+        footerKind: 'pill',
+      });
+    }
+    if (this.showsUsd()) {
+      const count = Number(summary.total_pending_orders_usd ?? 0);
+      cards.push({
+        key: 'usd',
+        label: 'Por cobrar en dólares',
+        hint: 'Órdenes pendientes en dólares.',
+        tone: 'emerald',
+        icon: Banknote,
+        value: count,
+        displayValue: this.formatMoney(summary.total_amount_pending_usd, 'USD'),
+        share: share(count),
+        footer: `${count} OV`,
+        footerKind: 'pill',
+      });
+    }
+    cards.push({
+      key: 'total',
+      label: 'Total en pesos',
+      hint: 'Suma en pesos con el tipo de cambio del día.',
+      tone: 'sky',
+      icon: Wallet,
+      value: totalOrders,
+      displayValue: this.summaryTotalLabel(),
+      share: totalOrders > 0 ? 100 : 0,
+      footer: `${totalOrders} OV`,
+      footerLines: [`${totalOrders} OV`, this.exchangeRateCaption()],
+      footerKind: 'pill',
+    });
+    return cards;
   }
 
   formatMoney(value: number | null | undefined, currency: 'MXN' | 'USD'): string {

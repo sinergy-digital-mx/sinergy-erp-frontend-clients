@@ -655,6 +655,7 @@ export class AccountingService {
       customer_display_name: (row['customer_display_name'] as string | null) ?? null,
       amount_collected: Number(row['amount_collected'] ?? 0),
       for_shipping: this.isShippingFlag(row['for_shipping']),
+      invoice_id: row['invoice_id'] ? String(row['invoice_id']) : null,
     };
   }
 

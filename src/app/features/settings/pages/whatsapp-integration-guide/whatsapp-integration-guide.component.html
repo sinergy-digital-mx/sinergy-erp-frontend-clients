@@ -5,7 +5,7 @@
   </a>
 
   <div class="mb-4">
-    <h2 class="text-2xl font-semibold text-gray-800">Guía de integración de WhatsApp</h2>
+    <h2 class="text-lg font-semibold text-gray-800">Guía de integración de WhatsApp</h2>
     <ng-container *ngFor="let block of guide.intro">
       <p *ngIf="block.t === 'p'" class="text-sm text-gray-500">
         <ng-container *ngTemplateOutlet="inlineTpl; context: { $implicit: $any(block).text }"></ng-container>

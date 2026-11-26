@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil, switchMap, tap, filter } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { ArrowRight, LucideAngularModule, Plus } from 'lucide-angular';
+import { ArrowRight, LucideAngularModule } from 'lucide-angular';
 import { ProductService } from '../../services/product.service';
 import { Product, ProductCatalogExportFilters } from '../../models/product.model';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
@@ -65,7 +65,6 @@ export class ProductListComponent implements OnDestroy {
 
   products = signal<Product[]>([]);
   ArrowRight = ArrowRight;
-  Plus = Plus;
   search = '';
   itemKindFilter = '';
   statusFilter = '';

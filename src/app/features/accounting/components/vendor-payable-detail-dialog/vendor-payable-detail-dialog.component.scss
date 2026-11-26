@@ -84,3 +84,32 @@
 .folio-link:hover {
   text-decoration: underline;
 }
+
+.folio-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.folio-action--eye {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  cursor: pointer;
+
+  i {
+    font-size: 0.78rem;
+    line-height: 1;
+  }
+
+  &:hover {
+    background: #e0e7ff;
+  }
+}

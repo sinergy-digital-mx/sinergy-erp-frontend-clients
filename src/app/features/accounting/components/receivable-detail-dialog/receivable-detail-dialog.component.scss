@@ -84,3 +84,57 @@
 .folio-link:hover {
   text-decoration: underline;
 }
+
+.folio-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.28rem;
+  min-width: 0;
+}
+
+.folio-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  height: 1.45rem;
+  padding: 0;
+  border: 1px solid #c7d2fe;
+  border-radius: 999px;
+  background: #fff;
+  color: #4338ca;
+  cursor: pointer;
+  line-height: 1;
+
+  &:hover:not(:disabled) {
+    background: #eef2ff;
+    border-color: #a5b4fc;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+}
+
+.folio-action--eye {
+  width: 1.45rem;
+  border: none;
+  background: #eef2ff;
+
+  i {
+    font-size: 0.78rem;
+    line-height: 1;
+  }
+
+  &:hover:not(:disabled) {
+    background: #e0e7ff;
+  }
+}
+
+.folio-action--pdf {
+  padding: 0 0.38rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}

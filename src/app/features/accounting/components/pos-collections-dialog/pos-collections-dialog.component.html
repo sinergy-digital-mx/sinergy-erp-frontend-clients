@@ -49,16 +49,29 @@
       <button type="button" class="folio-link" (click)="openSalesOrder(item)">
         {{ item.folio || item.id?.substring(0, 8) }}
       </button>
-      @if (hasCollectedMoney(item)) {
-        <button
-          type="button"
-          class="ticket-eye"
-          (click)="openTicket(item)"
-          title="Ver ticket"
-          aria-label="Ver ticket de venta">
-          <i class="fi fi-rr-eye" aria-hidden="true"></i>
-        </button>
-      }
+        @if (hasCollectedMoney(item)) {
+          <button
+            type="button"
+            class="ticket-eye"
+            (click)="openTicket(item)"
+            matTooltip="Ver el ticket de compra"
+            matTooltipClass="folio-action-tooltip"
+            matTooltipPosition="above"
+            aria-label="Ver el ticket de compra">
+            <i class="fi fi-rr-eye" aria-hidden="true"></i>
+          </button>
+          <button
+            type="button"
+            class="ticket-pdf"
+            [disabled]="openingPdfId() === orderId(item)"
+            (click)="openInvoicePdf(item)"
+            matTooltip="Ver el PDF de la factura"
+            matTooltipClass="folio-action-tooltip"
+            matTooltipPosition="above"
+            aria-label="Ver el PDF de la factura">
+            PDF
+          </button>
+        }
     </div>
   </td>
   <td class="px-2 py-2">{{ formatDate(item.created_at) }}</td>

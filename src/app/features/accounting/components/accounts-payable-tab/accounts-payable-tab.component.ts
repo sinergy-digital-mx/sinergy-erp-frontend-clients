@@ -4,7 +4,9 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
+import { Banknote, CircleDollarSign, Users, Wallet } from 'lucide-angular';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
+import { ListStatCard, ListStatStripComponent } from '../../../../core/components/list-stat-strip/list-stat-strip.component';
 import { IColumn, IDatatableConfig, IPaginationEvent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { ToastService } from '../../../../core/services/toast.service';
 import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
@@ -16,7 +18,7 @@ import { currencyViewFromQuery, pageFromQuery, replaceQuery } from '../../utils/
 @Component({
   selector: 'app-accounts-payable-tab',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, DatatableWrapperComponent],
+  imports: [CommonModule, ReactiveFormsModule, DatatableWrapperComponent, ListStatStripComponent],
   templateUrl: './accounts-payable-tab.component.html',
   styleUrl: './accounts-payable-tab.component.scss',
 })
@@ -136,6 +138,100 @@ export class AccountsPayableTabComponent implements OnInit, OnChanges, OnDestroy
     }
     if (this.period === 'month') return 'Creadas en el mes actual';
     return 'Saldo pendiente completo. Mes o Rango dejan solo esas fechas.';
+  }
+
+  statCards(): ListStatCard[] {
+    const summary = this.summary();
+    if (!summary) return [];
+    const totalOrders = this.totalOrderCount();
+    const share = (count: number) => (totalOrders > 0 ? Math.min(100, Math.round((count / totalOrders) * 100)) : 0);
+    const cards: ListStatCard[] = [
+      {
+        key: 'vendors',
+        label: 'Proveedores con saldo',
+        hint: 'Proveedores con órdenes de compra pendientes.',
+        tone: 'slate',
+        icon: Users,
+        value: Number(summary.total_vendors ?? 0),
+        share: 100,
+        footer: 'Con saldo',
+        footerKind: 'quiet',
+      },
+    ];
+    if (this.showsMxn()) {
+      const count = Number(summary.total_pending_orders_mxn ?? 0);
+      cards.push({
+        key: 'mxn',
+        label: 'Adeudado en pesos',
+        hint: 'Órdenes de compra pendientes en pesos.',
+        tone: 'indigo',
+        icon: CircleDollarSign,
+        value: count,
+        displayValue: this.formatMoney(summary.total_amount_pending_mxn, 'MXN'),
+        share: share(count),
+        footer: `${count} OC`,
+        footerKind: 'debt',
+      });
+    }
+    if (this.showsUsd()) {
+      const count = Number(summary.total_pending_orders_usd ?? 0);
+      cards.push({
+        key: 'usd',
+        label: 'Adeudado en dólares',
+        hint: 'Órdenes de compra pendientes en dólares.',
+        tone: 'emerald',
+        icon: Banknote,
+        value: count,
+        displayValue: this.formatMoney(summary.total_amount_pending_usd, 'USD'),
+        share: share(count),
+        footer: `${count} OC`,
+        footerKind: 'debt',
+      });
+    }
+    cards.push({
+      key: 'total',
+      label: 'Total en pesos',
+      hint: 'Suma en pesos con el tipo de cambio del día.',
+      tone: 'sky',
+      icon: Wallet,
+      value: totalOrders,
+      displayValue: this.summaryTotalLabel(),
+      share: totalOrders > 0 ? 100 : 0,
+      footer: `${totalOrders} OC`,
+      footerLines: [`${totalOrders} OC`, this.exchangeRateCaption()],
+      footerKind: 'pill',
+    });
+    if (this.showsMxn()) {
+      cards.push({
+        key: 'credit-mxn',
+        label: 'A favor en pesos',
+        hint: 'Saldo a favor del proveedor en pesos.',
+        tone: 'amber',
+        icon: CircleDollarSign,
+        value: 0,
+        displayValue: this.formatMoney(summary.total_credit_balance_mxn, 'MXN'),
+        share: 0,
+        shareLabel: 'MXN',
+        footer: 'Saldo a favor',
+        footerKind: 'ok',
+      });
+    }
+    if (this.showsUsd()) {
+      cards.push({
+        key: 'credit-usd',
+        label: 'A favor en dólares',
+        hint: 'Saldo a favor del proveedor en dólares.',
+        tone: 'amber',
+        icon: CircleDollarSign,
+        value: 0,
+        displayValue: this.formatMoney(summary.total_credit_balance_usd, 'USD'),
+        share: 0,
+        shareLabel: 'USD',
+        footer: 'Saldo a favor',
+        footerKind: 'ok',
+      });
+    }
+    return cards;
   }
 
   formatMoney(value: number | null | undefined, currency: 'MXN' | 'USD'): string {

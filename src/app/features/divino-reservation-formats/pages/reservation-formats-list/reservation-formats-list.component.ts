@@ -9,7 +9,6 @@ import {
   LucideAngularModule,
   Mail,
   Pencil,
-  Plus,
   Trash2,
 } from 'lucide-angular';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
@@ -49,7 +48,6 @@ export class ReservationFormatsListComponent implements OnDestroy {
   @ViewChild('tableTemplate') tableTemplate: TemplateRef<any>;
 
   readonly permissions = DIVINO_RESERVATION_FORMAT_PERMISSIONS;
-  readonly Plus = Plus;
   readonly FileText = FileText;
   readonly Download = Download;
   readonly Mail = Mail;

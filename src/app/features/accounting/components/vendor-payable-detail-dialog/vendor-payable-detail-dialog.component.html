@@ -38,9 +38,21 @@
           @for (row of visibleOrders(); track row.id) {
             <tr>
               <td>
-                <button type="button" class="folio-link" (click)="openPurchaseOrder(row)">
-                  {{ row.folio || row.id.substring(0, 8) }}
-                </button>
+                <div class="folio-actions">
+                  <button
+                    type="button"
+                    class="folio-action folio-action--eye"
+                    matTooltip="Ver la orden de compra"
+                    matTooltipClass="folio-action-tooltip"
+                    matTooltipPosition="above"
+                    aria-label="Ver la orden de compra"
+                    (click)="openPurchaseOrder(row)">
+                    <i class="fi fi-rr-eye" aria-hidden="true"></i>
+                  </button>
+                  <button type="button" class="folio-link" (click)="openPurchaseOrder(row)">
+                    {{ row.folio || row.id.substring(0, 8) }}
+                  </button>
+                </div>
               </td>
               <td>{{ formatDate(row.created_at) }}</td>
               <td>{{ formatDate(row.expected_delivery_date) }}</td>

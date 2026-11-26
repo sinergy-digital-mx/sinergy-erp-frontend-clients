@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { TagModule } from 'primeng/tag';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
-import { ArrowRight, ChevronRight, Plus, LucideAngularModule } from 'lucide-angular';
+import { ArrowRight, ChevronRight, LucideAngularModule } from 'lucide-angular';
 import { CustomerService } from '../../../../core/services/customer.service';
 import { MatDialog } from '@angular/material/dialog';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
@@ -104,7 +104,6 @@ export class CustomersList implements OnInit, OnDestroy {
 
   ArrowRight = ArrowRight;
   ChevronRight = ChevronRight;
-  Plus = Plus;
   readonly cardSkeletonSlots = [1, 2, 3, 4, 5];
   readonly permissions = CUSTOMER_PERMISSIONS;
   readonly Math = Math;

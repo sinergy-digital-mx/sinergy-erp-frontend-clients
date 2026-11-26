@@ -25,6 +25,8 @@ export interface ListStatCard {
   tone: ListStatTone;
   icon: ListStatIcon;
   value: number;
+  /** Si viene, sustituye el número grande. Sirve para un monto. */
+  displayValue?: string;
   share: number;
   /** Si viene, la barra se parte en estos tramos en lugar de un solo color. */
   segments?: ListStatSegment[];

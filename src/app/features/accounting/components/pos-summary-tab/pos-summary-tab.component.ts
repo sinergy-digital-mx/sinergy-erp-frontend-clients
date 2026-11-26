@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, TemplateRef, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import { IDatatableConfig } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
 import { AccountingService } from '../../services/accounting.service';
@@ -21,11 +22,16 @@ import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calc
 import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
 import { isForShippingFlag } from '../../../sales-orders/models/sales-order.model';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
+import { PosReceiptPreviewDialogComponent } from '../../../pos/components/pos-receipt-preview-dialog/pos-receipt-preview-dialog.component';
+import { SalesOrderInvoiceService } from '../../../sales-orders/services/sales-order-invoice.service';
+import { SalesOrderElectronicInvoice } from '../../../sales-orders/models/sales-order-electronic-invoice.model';
+import { ToastService } from '../../../../core/services/toast.service';
+import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
 
 @Component({
   selector: 'app-pos-summary-tab',
   standalone: true,
-  imports: [CommonModule, DatatableWrapperComponent],
+  imports: [CommonModule, DatatableWrapperComponent, MatTooltipModule],
   templateUrl: './pos-summary-tab.component.html',
   styleUrl: './pos-summary-tab.component.scss',
 })
@@ -41,13 +47,14 @@ export class PosSummaryTabComponent implements OnChanges {
 
   branchMissing = signal(false);
   loadError = signal(false);
+  openingPdfId = signal<string | null>(null);
   consultedDay = signal('');
   collectionTerminal = signal<CollectionTerminalSummary>(this.emptyCollectionTerminal());
 
   tableConfig = signal<IDatatableConfig>({
     rows: [],
     columns: [
-      { name: 'Folio', prop: 'folio', sortable: false, canAutoResize: false, width: 150 },
+      { name: 'Folio', prop: 'folio', sortable: false, canAutoResize: false, width: 220 },
       { name: 'Hora', prop: 'created_at', sortable: false, canAutoResize: false, width: 90 },
       { name: 'Cliente', prop: 'customer_display_name', sortable: false, canAutoResize: false, width: 200 },
       { name: 'Origen', prop: 'channel', sortable: false, canAutoResize: false, width: 110 },
@@ -71,7 +78,9 @@ export class PosSummaryTabComponent implements OnChanges {
   constructor(
     private accountingService: AccountingService,
     private dialog: MatDialog,
-    private taxCalculator: TaxCalculatorService
+    private taxCalculator: TaxCalculatorService,
+    private invoiceService: SalesOrderInvoiceService,
+    private toast: ToastService,
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -127,6 +136,87 @@ export class PosSummaryTabComponent implements OnChanges {
       ...ORDER_DETAIL_DIALOG_OPTIONS,
       data: { orderId: order.id },
     });
+  }
+
+  openTicket(order: PosEnteredOrder): void {
+    if (!order.id) {
+      return;
+    }
+    this.dialog.open(PosReceiptPreviewDialogComponent, {
+      width: '480px',
+      maxWidth: '95vw',
+      panelClass: 'pos-dialog-panel',
+      autoFocus: false,
+      data: {
+        salesOrderId: order.id,
+        useSalesOrderTicketApi: true,
+        title: `Ticket ${order.folio || order.id}`,
+      },
+    });
+  }
+
+  openInvoicePdf(order: PosEnteredOrder): void {
+    if (!order.id || this.openingPdfId()) {
+      return;
+    }
+    if (order.invoice_id) {
+      this.fetchInvoicePdf(order.id, order.invoice_id);
+      return;
+    }
+    this.openingPdfId.set(order.id);
+    this.invoiceService.getInvoices(order.id).subscribe({
+      next: (invoices) => {
+        const invoiceId = this.pickInvoiceId(invoices);
+        if (!invoiceId) {
+          this.openingPdfId.set(null);
+          this.toast.error('Esta orden no tiene factura');
+          return;
+        }
+        this.fetchInvoicePdf(order.id, invoiceId);
+      },
+      error: (error) => {
+        this.openingPdfId.set(null);
+        this.toast.error(resolveHttpErrorMessage(error, 'No se pudo abrir el PDF de la factura'));
+      },
+    });
+  }
+
+  private fetchInvoicePdf(orderId: string, invoiceId: string): void {
+    this.openingPdfId.set(orderId);
+    this.invoiceService.getInvoicePdf(orderId, invoiceId).subscribe({
+      next: (response) => {
+        this.openingPdfId.set(null);
+        if (!response.signedUrl) {
+          this.toast.error('No se recibió el PDF de la factura');
+          return;
+        }
+        window.open(response.signedUrl, '_blank', 'noopener,noreferrer');
+      },
+      error: (error) => {
+        this.openingPdfId.set(null);
+        this.toast.error(resolveHttpErrorMessage(error, 'No se pudo abrir el PDF de la factura'));
+      },
+    });
+  }
+
+  private pickInvoiceId(invoices: SalesOrderElectronicInvoice[]): string | null {
+    const usable = invoices.filter((invoice) => {
+      const stamp = (invoice.stamp_status || '').toLowerCase();
+      const role = (invoice.invoice_role || '').toLowerCase();
+      return (
+        Boolean(invoice.uuid) &&
+        (stamp === 'stamped' || stamp === 'cancel_pending') &&
+        (role === 'merchandise' || role === 'standard' || role === 'advance' || !role)
+      );
+    });
+    const rank = (role?: string | null) => {
+      const value = (role || '').toLowerCase();
+      if (value === 'merchandise' || value === 'standard' || !value) return 0;
+      if (value === 'advance') return 1;
+      return 9;
+    };
+    usable.sort((left, right) => rank(left.invoice_role) - rank(right.invoice_role));
+    return usable[0]?.id || null;
   }
 
   openShiftLabel(shift: PosOpenDailyShiftSummary | null | undefined): string {

@@ -32,49 +32,13 @@
   <p class="payable-hint">{{ periodCaption() }}</p>
 
   @if (summary()) {
-    <div class="payable-summary" [class.payable-summary--single]="currencyView() !== 'all'">
-      <div class="payable-summary__card">
-        <span class="payable-summary__label">Proveedores con saldo</span>
-        <span class="payable-summary__value">{{ summary()!.total_vendors ?? 0 }}</span>
-      </div>
-
-      @if (showsMxn()) {
-        <div class="payable-summary__card">
-          <span class="payable-summary__label">Adeudado en pesos</span>
-          <span class="payable-summary__value">{{ formatMoney(summary()!.total_amount_pending_mxn, 'MXN') }}</span>
-          <span class="currency-badge currency-badge--mxn">{{ summary()!.total_pending_orders_mxn ?? 0 }} OC</span>
-        </div>
-      }
-
-      @if (showsUsd()) {
-        <div class="payable-summary__card">
-          <span class="payable-summary__label">Adeudado en dólares</span>
-          <span class="payable-summary__value">{{ formatMoney(summary()!.total_amount_pending_usd, 'USD') }}</span>
-          <span class="currency-badge currency-badge--usd">{{ summary()!.total_pending_orders_usd ?? 0 }} OC</span>
-        </div>
-      }
-
-      <div class="payable-summary__card">
-        <span class="payable-summary__label">Total en pesos</span>
-        <span class="payable-summary__value">{{ summaryTotalLabel() }}</span>
-        <span class="payable-summary__meta">{{ exchangeRateCaption() }}</span>
-        <span class="currency-badge currency-badge--mxn">{{ totalOrderCount() }} OC</span>
-      </div>
-
-      @if (showsMxn()) {
-        <div class="payable-summary__card">
-          <span class="payable-summary__label">A favor en pesos</span>
-          <span class="payable-summary__value">{{ formatMoney(summary()!.total_credit_balance_mxn, 'MXN') }}</span>
-        </div>
-      }
-
-      @if (showsUsd()) {
-        <div class="payable-summary__card">
-          <span class="payable-summary__label">A favor en dólares</span>
-          <span class="payable-summary__value">{{ formatMoney(summary()!.total_credit_balance_usd, 'USD') }}</span>
-        </div>
-      }
-    </div>
+    <app-list-stat-strip
+      label="Resumen de cuentas por pagar"
+      [cards]="statCards()"
+      [columns]="statCards().length"
+      [loading]="tableConfig().loading"
+      [ready]="true">
+    </app-list-stat-strip>
   }
 
   <div class="payable-search">

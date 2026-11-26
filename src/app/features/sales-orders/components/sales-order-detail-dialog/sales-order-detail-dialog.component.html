@@ -51,7 +51,18 @@
   </ng-template>
   @if (loading()) {
     <div class="loading-container">
+      <button type="button" class="close-btn order-detail-dialog__float-close" (click)="close()" aria-label="Cerrar">
+        <i class="fi fi-rr-cross-small"></i>
+      </button>
       <app-spinner></app-spinner>
+    </div>
+  } @else if (!order()) {
+    <div class="order-detail-empty">
+      <button type="button" class="close-btn order-detail-dialog__float-close" (click)="close()" aria-label="Cerrar">
+        <i class="fi fi-rr-cross-small"></i>
+      </button>
+      <p>{{ loadError() || 'No se pudo abrir el detalle de la orden.' }}</p>
+      <button type="button" class="order-detail-empty__retry" (click)="loadOrder()">Reintentar</button>
     </div>
   }
 

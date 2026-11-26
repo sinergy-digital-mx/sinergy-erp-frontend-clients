@@ -44,7 +44,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { SALES_ORDER_PERMISSIONS } from '../../config/permissions.config';
 import { GlanceSwitchComponent } from '../../../../core/components/glance-switch/glance-switch.component';
 import { ListStatCard, ListStatStripComponent } from '../../../../core/components/list-stat-strip/list-stat-strip.component';
-import { ChevronRight, CircleAlert, CircleDollarSign, ClipboardList, LucideAngularModule, Package, Plus, ShoppingBag } from 'lucide-angular';
+import { ChevronRight, CircleAlert, CircleDollarSign, ClipboardList, LucideAngularModule, Package, ShoppingBag } from 'lucide-angular';
 
 @Component({
   selector: 'app-sales-order-list',
@@ -61,7 +61,6 @@ export class SalesOrderListComponent implements OnInit, OnDestroy {
   readonly canViewStats = signal(this.authService.hasPermission(SALES_ORDER_PERMISSIONS.viewStats));
 
   readonly Math = Math;
-  readonly Plus = Plus;
   readonly ChevronRight = ChevronRight;
   readonly cardSkeletonSlots = [1, 2, 3, 4];
 

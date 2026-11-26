@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import {
   IDatatableConfig,
@@ -21,6 +22,8 @@ import {
 } from '../../models/accounting.model';
 import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
 import { PosReceiptPreviewDialogComponent } from '../../../pos/components/pos-receipt-preview-dialog/pos-receipt-preview-dialog.component';
+import { SalesOrderInvoiceService } from '../../../sales-orders/services/sales-order-invoice.service';
+import { openStampedInvoicePdf } from '../../utils/open-stamped-invoice-pdf';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { paymentMethodLabel } from '../../../pos/models/pos-collected-sales.model';
 import { PosUserSummary, isForShippingFlag } from '../../../sales-orders/models/sales-order.model';
@@ -59,7 +62,7 @@ interface PaymentMethodCard {
 @Component({
   selector: 'app-pos-collections-tab',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatatableWrapperComponent],
+  imports: [CommonModule, FormsModule, MatTooltipModule, DatatableWrapperComponent],
   templateUrl: './pos-collections-tab.component.html',
   styleUrl: './pos-collections-tab.component.scss',
 })
@@ -82,6 +85,7 @@ export class PosCollectionsTabComponent implements OnChanges {
   appliedFrom = signal('');
   appliedTo = signal('');
   exporting = signal(false);
+  openingPdfId = signal<string | null>(null);
   summary = signal<PosCollectionsSummary>(this.emptySummary());
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
   private fetchedOnce = false;
@@ -117,6 +121,7 @@ export class PosCollectionsTabComponent implements OnChanges {
     private dialog: MatDialog,
     private taxCalculator: TaxCalculatorService,
     private toast: ToastService,
+    private invoices: SalesOrderInvoiceService,
     private route: ActivatedRoute,
     private router: Router,
   ) {
@@ -348,6 +353,14 @@ export class PosCollectionsTabComponent implements OnChanges {
     this.dialog.open(SalesOrderDetailDialogComponent, {
       ...ORDER_DETAIL_DIALOG_OPTIONS,
       data: { orderId },
+    });
+  }
+
+  openInvoicePdf(row: PosCollectionRow): void {
+    const orderId = this.orderId(row);
+    if (!orderId || this.openingPdfId()) return;
+    openStampedInvoicePdf(this.invoices, this.toast, orderId, (busy) => {
+      this.openingPdfId.set(busy ? orderId : null);
     });
   }
 

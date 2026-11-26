@@ -83,6 +83,8 @@ export interface PosEnteredOrder {
   customer_display_name?: string | null;
   amount_collected: number;
   for_shipping?: boolean | number | string | null;
+  /** Factura timbrada vigente de la orden, si existe. */
+  invoice_id?: string | null;
 }
 
 export interface PosSummaryResponse {

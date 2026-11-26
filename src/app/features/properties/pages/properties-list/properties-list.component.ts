@@ -22,7 +22,7 @@ import { PropertyBlockDropdownComponent } from '../../components/property-block-
 import { FilterClearButtonComponent } from '../../../../core/components/filter-clear-button/filter-clear-button.component';
 import { PropertyFilterIndicatorComponent } from '../../components/property-filter-indicator/property-filter-indicator.component';
 import { PropertyStatsCardsComponent } from '../../components/property-stats-cards/property-stats-cards.component';
-import { ArrowRight, Plus, Upload, LucideAngularModule } from 'lucide-angular';
+import { ArrowRight, Upload, LucideAngularModule } from 'lucide-angular';
 import { PropertyImportModalComponent } from '../../components/property-import-modal/property-import-modal.component';
 import { CustomerGroupDropdownComponent } from '../../../customers/components/customer-group-dropdown/customer-group-dropdown.component';
 import { CustomerGroupFetchService } from '../../../customers/services/customer-group-fetch.service';
@@ -87,7 +87,6 @@ export class PropertiesListComponent implements OnDestroy {
   });
 
   ArrowRight = ArrowRight;
-  Plus = Plus;
   Upload = Upload;
   readonly Math = Math;
   readonly displayCadastralKey = displayCadastralKey;

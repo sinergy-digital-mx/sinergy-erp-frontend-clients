@@ -1,6 +1,7 @@
 import { Component, Inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
@@ -26,7 +27,7 @@ export interface VendorPayableDetailDialogData {
 @Component({
   selector: 'app-vendor-payable-detail-dialog',
   standalone: true,
-  imports: [CommonModule, MatDialogModule, SpinnerComponent],
+  imports: [CommonModule, MatDialogModule, MatTooltipModule, SpinnerComponent],
   templateUrl: './vendor-payable-detail-dialog.component.html',
   styleUrl: './vendor-payable-detail-dialog.component.scss',
 })

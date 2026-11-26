@@ -464,12 +464,18 @@ main,
   background: #fff;
 }
 
-.mat-mdc-dialog-container:has(.order-detail-dialog) .mat-mdc-dialog-surface {
+.mat-mdc-dialog-container:has(.order-detail-dialog) .mat-mdc-dialog-inner-container,
+.mat-mdc-dialog-container:has(.order-detail-dialog) .mat-mdc-dialog-surface,
+.mat-mdc-dialog-container:has(.order-detail-dialog) app-sales-order-detail-dialog,
+.mat-mdc-dialog-container:has(.order-detail-dialog) app-order-detail-dialog {
   width: 100% !important;
   height: 100% !important;
   max-width: 100% !important;
   max-height: 100% !important;
   border-radius: 8px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
 }
 
 /* Modal detalle de lote: mismo tamaño anidado (OC/OV) que desde el listado */
@@ -768,6 +774,26 @@ main,
   white-space: normal !important;
   overflow: visible !important;
   max-width: none !important;
+}
+
+.mat-mdc-tooltip.folio-action-tooltip,
+.folio-action-tooltip.mat-mdc-tooltip {
+  background: #0f172a !important;
+  max-width: 16rem !important;
+  white-space: nowrap !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.22) !important;
+}
+
+.mat-mdc-tooltip.folio-action-tooltip .mdc-tooltip__surface,
+.folio-action-tooltip .mdc-tooltip__surface {
+  background: transparent !important;
+  color: #f8fafc !important;
+  padding: 0 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+  white-space: nowrap !important;
 }
 
 .mat-mdc-tooltip.wc-status-tooltip,

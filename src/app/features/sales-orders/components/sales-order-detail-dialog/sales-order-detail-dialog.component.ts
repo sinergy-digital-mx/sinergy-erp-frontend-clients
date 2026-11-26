@@ -194,6 +194,7 @@ const INSTRUCTION_SECTIONS: InstructionSection[] = [
 })
 export class SalesOrderDetailDialogComponent {
   order = signal<SalesOrder | null>(null);
+  loadError = signal<string | null>(null);
   lineItems = signal<SalesOrderLineItem[]>([]);
   discountSummary = signal<SalesOrderDiscountSummary | null>(null);
   documents = signal<SalesOrderDocument[]>([]);
@@ -344,14 +345,28 @@ export class SalesOrderDetailDialogComponent {
   }
 
   loadOrder(silent = false): void {
+    if (!this.data?.orderId) {
+      this.loading.set(false);
+      this.loadError.set('No se recibió la orden para abrir el detalle.');
+      return;
+    }
     if (!silent) {
       this.loading.set(true);
+      this.loadError.set(null);
     } else {
       this.refreshing.set(true);
     }
     this.salesOrderService.getOrderDetailById(this.data.orderId).subscribe({
       next: (payload) => {
-        this.order.set(payload?.header || null);
+        if (!payload?.header) {
+          this.order.set(null);
+          this.loading.set(false);
+          this.refreshing.set(false);
+          this.loadError.set('No se pudo abrir el detalle de la orden.');
+          return;
+        }
+        this.loadError.set(null);
+        this.order.set(payload.header);
         this.discountSummary.set(
           payload?.discount_summary ?? payload?.header?.discount_summary ?? null
         );
@@ -366,9 +381,13 @@ export class SalesOrderDetailDialogComponent {
         this.loadInvoiceSummaryIfAllowed();
         this.loadPaymentComplement();
       },
-      error: () => {
+      error: (error: { message?: string }) => {
         this.loading.set(false);
         this.refreshing.set(false);
+        if (!silent) {
+          this.order.set(null);
+          this.loadError.set(error?.message || 'No se pudo abrir el detalle de la orden.');
+        }
       }
     });
   }

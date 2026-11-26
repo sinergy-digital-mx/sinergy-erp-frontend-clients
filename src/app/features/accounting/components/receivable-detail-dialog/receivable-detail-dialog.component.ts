@@ -1,6 +1,7 @@
 import { Component, Inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { AccountingService } from '../../services/accounting.service';
 import { AccountsReceivableDetail, AccountsReceivableOrderRow } from '../../models/accounting.model';
 import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
@@ -8,6 +9,10 @@ import { SpinnerComponent } from '../../../../core/components/spinner/spinner.co
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { formatPosUser } from '../../../sales-orders/utils/pos-user-display.util';
 import { formatUnitCurrency } from '../../../../core/utils/unit-money.util';
+import { ToastService } from '../../../../core/services/toast.service';
+import { PosReceiptPreviewDialogComponent } from '../../../pos/components/pos-receipt-preview-dialog/pos-receipt-preview-dialog.component';
+import { SalesOrderInvoiceService } from '../../../sales-orders/services/sales-order-invoice.service';
+import { openStampedInvoicePdf } from '../../utils/open-stamped-invoice-pdf';
 
 export interface ReceivableDetailDialogData {
   razonSocial: string;
@@ -18,19 +23,22 @@ export interface ReceivableDetailDialogData {
 @Component({
   selector: 'app-receivable-detail-dialog',
   standalone: true,
-  imports: [CommonModule, MatDialogModule, SpinnerComponent],
+  imports: [CommonModule, MatDialogModule, MatTooltipModule, SpinnerComponent],
   templateUrl: './receivable-detail-dialog.component.html',
   styleUrl: './receivable-detail-dialog.component.scss',
 })
 export class ReceivableDetailDialogComponent implements OnInit {
   detail = signal<AccountsReceivableDetail | null>(null);
   loading = signal(true);
+  openingPdfId = signal<string | null>(null);
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: ReceivableDetailDialogData,
     private dialogRef: MatDialogRef<ReceivableDetailDialogComponent>,
     private dialog: MatDialog,
-    private accountingService: AccountingService
+    private accountingService: AccountingService,
+    private invoices: SalesOrderInvoiceService,
+    private toast: ToastService,
   ) {}
 
   ngOnInit(): void {
@@ -70,6 +78,28 @@ export class ReceivableDetailDialogComponent implements OnInit {
 
   sellerLabel(row: AccountsReceivableOrderRow): string {
     return formatPosUser(row.seller_user);
+  }
+
+  openTicket(row: AccountsReceivableOrderRow): void {
+    if (!row.id) return;
+    this.dialog.open(PosReceiptPreviewDialogComponent, {
+      width: '480px',
+      maxWidth: '95vw',
+      panelClass: 'pos-dialog-panel',
+      autoFocus: false,
+      data: {
+        salesOrderId: row.id,
+        useSalesOrderTicketApi: true,
+        title: `Ticket ${row.folio || row.id}`,
+      },
+    });
+  }
+
+  openInvoicePdf(row: AccountsReceivableOrderRow): void {
+    if (!row.id || this.openingPdfId()) return;
+    openStampedInvoicePdf(this.invoices, this.toast, row.id, (busy) => {
+      this.openingPdfId.set(busy ? row.id : null);
+    });
   }
 
   openSalesOrder(row: AccountsReceivableOrderRow): void {

@@ -1,6 +1,7 @@
 import { Component, Inject, OnInit, TemplateRef, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import {
   IDatatableConfig,
@@ -17,6 +18,9 @@ import {
 } from '../../models/accounting.model';
 import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
 import { PosReceiptPreviewDialogComponent } from '../../../pos/components/pos-receipt-preview-dialog/pos-receipt-preview-dialog.component';
+import { SalesOrderInvoiceService } from '../../../sales-orders/services/sales-order-invoice.service';
+import { ToastService } from '../../../../core/services/toast.service';
+import { openStampedInvoicePdf } from '../../utils/open-stamped-invoice-pdf';
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { PosUserSummary, isForShippingFlag } from '../../../sales-orders/models/sales-order.model';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
@@ -40,7 +44,7 @@ interface CollectionFilterChip {
 @Component({
   selector: 'app-pos-collections-dialog',
   standalone: true,
-  imports: [CommonModule, MatDialogModule, DatatableWrapperComponent],
+  imports: [CommonModule, MatDialogModule, MatTooltipModule, DatatableWrapperComponent],
   templateUrl: './pos-collections-dialog.component.html',
   styleUrl: './pos-collections-dialog.component.scss',
 })
@@ -50,6 +54,7 @@ export class PosCollectionsDialogComponent implements OnInit {
   customerType = signal<CollectionCustomerType>('all');
   paymentMethod = signal<PosCollectionPaymentMethodKey | null>(null);
   listTotal = signal(0);
+  openingPdfId = signal<string | null>(null);
 
   readonly filterChips: CollectionFilterChip[];
   readonly creditCount: number;
@@ -85,7 +90,9 @@ export class PosCollectionsDialogComponent implements OnInit {
     private dialogRef: MatDialogRef<PosCollectionsDialogComponent>,
     private dialog: MatDialog,
     private accountingService: AccountingService,
-    private taxCalculator: TaxCalculatorService
+    private taxCalculator: TaxCalculatorService,
+    private invoices: SalesOrderInvoiceService,
+    private toast: ToastService,
   ) {
     const collection = data.collection;
     this.filterChips = [
@@ -173,8 +180,21 @@ export class PosCollectionsDialogComponent implements OnInit {
     });
   }
 
+  orderId(row: PosCollectionRow): string {
+    return row.sales_order_id || row.id;
+  }
+
+  openInvoicePdf(row: PosCollectionRow): void {
+    const orderId = this.orderId(row);
+    if (!orderId || this.openingPdfId()) return;
+    openStampedInvoicePdf(this.invoices, this.toast, orderId, (busy) => {
+      this.openingPdfId.set(busy ? orderId : null);
+    });
+  }
+
   openTicket(row: PosCollectionRow): void {
-    if (!row.id || !this.hasCollectedMoney(row)) {
+    const orderId = this.orderId(row);
+    if (!orderId || !this.hasCollectedMoney(row)) {
       return;
     }
     this.dialog.open(PosReceiptPreviewDialogComponent, {
@@ -183,9 +203,9 @@ export class PosCollectionsDialogComponent implements OnInit {
       panelClass: 'pos-dialog-panel',
       autoFocus: false,
       data: {
-        salesOrderId: row.id,
+        salesOrderId: orderId,
         useSalesOrderTicketApi: true,
-        title: `Ticket ${row.folio || row.id}`,
+        title: `Ticket ${row.folio || orderId}`,
       },
     });
   }
