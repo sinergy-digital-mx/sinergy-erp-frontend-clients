@@ -66,12 +66,13 @@
 
 // Create Button
 .create-btn {
-  padding: 8px 16px;
+  height: 32px;
+  padding: 0 12px;
   background: #4f46e5;
   color: white;
   border: none;
-  border-radius: 6px;
-  font-size: 13px;
+  border-radius: 8px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;

@@ -33,13 +33,22 @@
 
 .brand-btn {
   @include brand-btn-primary;
-  border-radius: 10px;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  line-height: 1.25;
+  box-sizing: border-box;
+  height: 32px;
+  border-radius: 8px;
+  padding: 0 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1;
 }
 
 .brand-btn--sm {
+  height: 28px;
+  padding: 0 0.625rem;
+  font-size: 0.75rem;
+  border-radius: 8px;
+}
+
+.brand-btn--lg {
   height: 36px;
   padding: 0 0.875rem;
   font-size: 0.8125rem;
@@ -48,11 +57,12 @@
 
 .page-create-btn {
   @include brand-btn-primary;
+  box-sizing: border-box;
   flex-shrink: 0;
-  height: 40px;
-  padding: 0 1.125rem;
-  font-size: 0.875rem;
-  border-radius: 10px;
+  height: 32px;
+  padding: 0 0.75rem;
+  font-size: 0.75rem;
+  border-radius: 8px;
 }
 
 // Clase legacy usada con app-button en todo el sistema

@@ -1,26 +1,20 @@
 {
-  "version": "0.0.202",
-  "buildId": "0.0.202-1795725148718",
-  "builtAt": "2026-11-26T20:32:28.718Z",
+  "version": "0.0.203",
+  "buildId": "0.0.203-1795727469267",
+  "builtAt": "2026-11-26T21:11:09.267Z",
   "channel": "full",
   "changes": [
     {
       "scope": "frontend",
-      "message": "En Caja, el panel de cobro entra deslizándose desde la derecha.",
-      "module": "pos",
-      "moduleLabel": "POS Ventas"
+      "message": "Los botones de acción quedaron en 32 px de alto, con texto de 12 px.",
+      "module": "platform",
+      "moduleLabel": "Plataforma"
     },
     {
       "scope": "frontend",
-      "message": "Al abrir Ventas o Caja el menú de la izquierda se cierra solo y se puede volver a abrir.",
-      "module": "pos",
-      "moduleLabel": "POS Ventas"
-    },
-    {
-      "scope": "frontend",
-      "message": "Se quitó estilo sin uso del cobro para que el build no pase de 60 kB.",
-      "module": "pos",
-      "moduleLabel": "POS Ventas"
+      "message": "En el CRM se quitó el subtítulo de seguimiento de todos los usuarios.",
+      "module": "crm",
+      "moduleLabel": "CRM"
     }
   ]
 }

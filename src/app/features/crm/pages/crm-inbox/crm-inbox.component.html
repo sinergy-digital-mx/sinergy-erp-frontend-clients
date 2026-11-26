@@ -2,13 +2,9 @@
   <div class="crm-header">
     <div>
       <h2 class="crm-header__title">CRM</h2>
-      <p class="crm-header__subtitle">
-        @if (isCrmAdmin()) {
-          Portal de seguimiento de todos los usuarios
-        } @else {
-          Tus actividades, llamadas y seguimientos pendientes
-        }
-      </p>
+      @if (!isCrmAdmin()) {
+        <p class="crm-header__subtitle">Tus actividades, llamadas y seguimientos pendientes</p>
+      }
     </div>
     <app-report-period-selector
       [period]="datePreset"

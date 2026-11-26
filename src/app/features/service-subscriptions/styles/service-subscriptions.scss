@@ -826,9 +826,10 @@ a.page-create-btn {
   }
 
   &--outline {
-    height: 40px;
-    padding: 0 1rem;
-    border-radius: 10px;
+    height: 32px;
+    padding: 0 0.75rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
     border-color: #e5e7eb;
     background: #fff;
     color: #374151;
@@ -983,8 +984,9 @@ a.page-create-btn {
   margin-top: 1rem;
 
   .sub-btn--ghost {
-    height: 40px;
-    padding: 0 0.9rem;
+    height: 32px;
+    padding: 0 0.75rem;
+    font-size: 0.75rem;
   }
 }
 

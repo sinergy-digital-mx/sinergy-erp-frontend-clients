@@ -32,10 +32,10 @@
   &__download,
   &__submit {
     @include brand.brand-btn-primary;
-    height: 40px;
-    padding: 0 1rem;
-    font-size: 0.875rem;
-    border-radius: 10px;
+    height: 32px;
+    padding: 0 0.75rem;
+    font-size: 0.75rem;
+    border-radius: 8px;
   }
 
   &__file {
@@ -197,10 +197,11 @@
   }
 
   &__cancel {
-    height: 40px;
-    padding: 0 1rem;
+    height: 32px;
+    padding: 0 0.75rem;
     border: 1px solid #cbd5e1;
-    border-radius: 10px;
+    border-radius: 8px;
+    font-size: 0.75rem;
     background: #fff;
     color: #334155;
     font-weight: 600;

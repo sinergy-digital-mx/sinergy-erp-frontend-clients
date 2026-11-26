@@ -6,8 +6,8 @@
   [ngClass]="[
     'flex items-center justify-center gap-2 rounded-lg transition font-semibold',
     fullWidth ? 'w-full' : 'w-auto',
-    size === 'sm' ? 'h-9 min-h-9 px-3.5 text-[13px] leading-none rounded-lg' : size === 'lg' ? 'px-6 py-3 text-base' : 'px-4 py-2 text-sm',
-    variant === 'primary' ? (size === 'sm' ? 'brand-btn brand-btn--sm !shadow-none' : 'brand-btn !shadow-none') : 
+    size === 'sm' ? 'h-7 min-h-7 px-2.5 text-xs leading-none rounded-lg' : size === 'lg' ? 'h-9 min-h-9 px-3.5 text-[13px] leading-none rounded-lg' : 'h-8 min-h-8 px-3 text-xs leading-none rounded-lg',
+    variant === 'primary' ? (size === 'sm' ? 'brand-btn brand-btn--sm !shadow-none' : size === 'lg' ? 'brand-btn brand-btn--lg !shadow-none' : 'brand-btn !shadow-none') : 
     variant === 'secondary' ? 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300' :
     variant === 'danger' ? 'bg-red-600 text-white hover:bg-red-700' :
     variant === 'danger-outline' ? 'bg-white text-red-600 border border-red-200 hover:bg-red-50 hover:border-red-300' :
@@ -17,7 +17,7 @@
   ]"
 >
   @if (loading) {
-    <app-spinner [width]="16" [height]="16" [border_width]="3"></app-spinner>
+    <app-spinner [width]="14" [height]="14" [border_width]="2"></app-spinner>
   }
 
   @if (text) {
@@ -27,6 +27,6 @@
   }
   
   @if (!loading && icon) {
-    <lucide-icon [img]="icon" class="w-4 h-4"></lucide-icon>
+    <lucide-icon [img]="icon" class="w-3.5 h-3.5"></lucide-icon>
   }
 </button>

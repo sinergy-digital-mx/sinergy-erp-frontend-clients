@@ -113,9 +113,11 @@
 .notes-dialog__btn {
   border: none;
   border-radius: 8px;
-  font-size: 0.8125rem;
+  height: 32px;
+  box-sizing: border-box;
+  font-size: 0.75rem;
   font-weight: 600;
-  padding: 0.5rem 0.875rem;
+  padding: 0 0.75rem;
   cursor: pointer;
   display: inline-flex;
   align-items: center;

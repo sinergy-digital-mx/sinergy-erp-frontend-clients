@@ -46,9 +46,9 @@
   &__import,
   &__create {
     flex-shrink: 0;
-    height: 36px;
-    padding: 0 0.875rem;
-    font-size: 0.8125rem;
+    height: 32px;
+    padding: 0 0.75rem;
+    font-size: 0.75rem;
     border-radius: 8px;
     white-space: nowrap;
   }
@@ -90,13 +90,13 @@
   &__btn {
     appearance: none;
     margin: 0;
-    height: 36px;
-    padding: 0 0.85rem;
+    height: 32px;
+    padding: 0 0.75rem;
     border: none;
     border-right: 1px solid #e8eef5;
     background: transparent;
     color: #475569;
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
     font-weight: 600;
     font-family: inherit;
     line-height: 1;
