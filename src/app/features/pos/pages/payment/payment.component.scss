@@ -495,12 +495,6 @@
   background: #eef2ff;
 }
 
-.cobranza-head-btn--return {
-  color: #92400e;
-  border-color: #fde68a;
-  background: #fffbeb;
-}
-
 .cobranza-head-btn {
   display: inline-flex;
   align-items: center;
@@ -1218,79 +1212,6 @@
   -webkit-appearance: none;
 }
 
-.cobranza-collect-nav {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  min-height: 2.2rem;
-
-  strong {
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 0.84rem;
-    color: #0f172a;
-  }
-
-  span,
-  time {
-    font-size: 0.75rem;
-    color: #64748b;
-  }
-
-  .cobranza-head-btn--return {
-    margin-left: auto;
-  }
-}
-
-.cobranza-customer-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.55rem;
-
-  &__main {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    align-items: baseline;
-    gap: 0.45rem;
-    padding: 0.35rem 0.15rem;
-    border: 0;
-    background: transparent;
-    text-align: left;
-    cursor: pointer;
-
-    span {
-      font-size: 0.65rem;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: #94a3b8;
-    }
-
-    strong {
-      font-size: 0.9rem;
-      color: #0f172a;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-  }
-}
-
-.cobranza-block.is-customer-collapsed {
-  .cobranza-customer-options,
-  .cobranza-walk-in-fields,
-  .cobranza-walk-in-hint,
-  .cobranza-customer-selected,
-  .cobranza-advance-lead {
-    display: none;
-  }
-
-  .cobranza-customer-bar {
-    margin-bottom: 0;
-  }
-}
-
 .cobranza-balance {
   background: #fff;
   border: 1px solid var(--pos-border);
@@ -1387,6 +1308,7 @@
   background: rgba(15, 23, 42, 0.32);
   backdrop-filter: blur(7px);
   -webkit-backdrop-filter: blur(7px);
+  animation: cobranza-overlay-in 0.28s ease;
 }
 
 .cobranza-panel--collect {
@@ -1404,6 +1326,34 @@
   border-radius: 16px 0 0 16px;
   border-right: 0;
   box-shadow: -18px 0 48px rgba(15, 23, 42, 0.22);
+  animation: cobranza-drawer-in 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes cobranza-overlay-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cobranza-drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cobranza-collect-overlay,
+  .cobranza-panel--drawer {
+    animation: none;
+  }
 }
 
 .cobranza-drawer__head {
@@ -1541,13 +1491,6 @@
     background: #e2e8f0;
     color: #0f172a;
   }
-}
-
-.cobranza-panel__sub {
-  margin: 0.15rem 0 0;
-  font-size: 0.75rem;
-  color: var(--pos-muted);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 .cobranza-head-btn {
@@ -1929,12 +1872,6 @@
   flex-direction: column;
   gap: 0.4rem;
   margin-top: 0.65rem;
-}
-
-.cobranza-stamp__label {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #92400e;
 }
 
 .cobranza-invoice {
@@ -2495,42 +2432,6 @@
   }
 }
 
-.cobranza-change {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.65rem 0.85rem;
-  border-radius: 9px;
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
-
-  span {
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: #047857;
-  }
-
-  strong {
-    font-size: 1.05rem;
-    font-weight: 800;
-    color: #059669;
-    letter-spacing: -0.02em;
-  }
-
-  &--warn {
-    background: #fef2f2;
-    border-color: #fecaca;
-
-    span {
-      color: #b91c1c;
-    }
-
-    strong {
-      color: #dc2626;
-    }
-  }
-}
-
 .cobranza-cash-hint {
   margin: 0 0 0.75rem;
   padding: 0.55rem 0.7rem;
@@ -2914,28 +2815,6 @@
   }
 }
 
-.cobranza-received-block {
-  padding: 0.75rem;
-  border-radius: 10px;
-  background: #f8fafc;
-  border: 1px dashed #cbd5e1;
-
-  &__head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    margin-bottom: 0.65rem;
-
-    > span {
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: #334155;
-    }
-  }
-}
-
 .cobranza-quick-btns {
   display: flex;
   flex-wrap: wrap;
@@ -3090,65 +2969,6 @@
   &--change:not(.cobranza-cash-result--short) &__copy span {
     color: #065f46;
     font-weight: 700;
-  }
-}
-
-.cobranza-pay-progress {
-  padding: 0.65rem 0.75rem;
-  border-radius: 10px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-
-  &__track {
-    height: 6px;
-    border-radius: 999px;
-    background: #e2e8f0;
-    overflow: hidden;
-    margin-bottom: 0.5rem;
-  }
-
-  &__fill {
-    height: 100%;
-    border-radius: 999px;
-    background: linear-gradient(90deg, #818cf8, #6366f1);
-    transition: width 0.2s ease;
-
-    &--ok {
-      background: linear-gradient(90deg, #34d399, #10b981);
-    }
-  }
-
-  &__labels {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-
-    span {
-      font-size: 0.72rem;
-      font-weight: 600;
-      color: #64748b;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    strong {
-      font-size: 0.95rem;
-      font-weight: 800;
-      color: #334155;
-
-      em {
-        font-style: normal;
-        font-size: 0.78rem;
-        font-weight: 600;
-        color: #94a3b8;
-        margin-left: 0.25rem;
-      }
-    }
-  }
-
-  &__ok {
-    color: #059669 !important;
   }
 }
 
@@ -3349,13 +3169,6 @@
   }
 }
 
-.cobranza-customer-options {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  margin-bottom: 0;
-}
-
 .cobranza-walk-in-fields {
   margin-top: 0.75rem;
 }
@@ -3373,62 +3186,6 @@
 
 .cobranza-field__input--invalid {
   border-color: #fca5a5 !important;
-}
-
-.cobranza-radio {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  padding: 0.65rem 0.7rem;
-  border: 1px solid var(--pos-border);
-  border-radius: 10px;
-  background: #fff;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
-
-  input {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  &--on {
-    border-color: #818cf8;
-    background: #eef2ff;
-    box-shadow: 0 0 0 1px #c7d2fe;
-  }
-
-  &__icon {
-    flex-shrink: 0;
-    width: 1.75rem;
-    height: 1.75rem;
-    border-radius: 8px;
-    background: #f1f5f9;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #6366f1;
-  }
-
-  &__text {
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-    min-width: 0;
-
-    strong {
-      font-size: 0.78rem;
-      color: #111827;
-    }
-
-    span {
-      font-size: 0.68rem;
-      color: var(--pos-muted);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-  }
 }
 
 .cobranza-empty,
@@ -3504,10 +3261,6 @@
   .cobranza-chrome__actions {
     width: 100%;
     margin-left: 0;
-  }
-
-  .cobranza-customer-options {
-    grid-template-columns: 1fr;
   }
 
   .cobranza-pay-tabs {

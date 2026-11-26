@@ -6,6 +6,7 @@ import {
   OnDestroy,
   OnInit,
   effect,
+  inject,
   untracked,
   signal,
   computed,
@@ -18,6 +19,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, Subject, Subscription, catchError, debounceTime, distinctUntilChanged, forkJoin, map, of, switchMap, takeUntil, tap } from 'rxjs';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { formatBusinessDateTime } from '../../../../core/utils/api-datetime.util';
+import { SidebarService } from '../../../../core/services/sidebar.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AssignedBranch, AuthService } from '../../../../core/services/auth.service';
 import { MatDialog } from '@angular/material/dialog';
@@ -352,6 +354,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   private unclosedDialogOpen = false;
   private acknowledgedUnclosedIds = new Set<string>();
   private productPricingCache = new Map<string, PosPricingOption[]>();
+  private readonly sidebar = inject(SidebarService);
   private readonly destroy$ = new Subject<void>();
   private readonly searchInput$ = new Subject<string>();
   private lastAppliedSearch: string | null = null;
@@ -476,6 +479,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.sidebar.enterPosWorkbench('ventas');
     window.addEventListener('keydown', this.onWindowKeydown, true);
     this.searchInput$
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
@@ -597,6 +601,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.sidebar.leavePosWorkbench('ventas');
     this.cancelSlotReprice();
     if (this.landedTimer) clearTimeout(this.landedTimer);
     window.removeEventListener('keydown', this.onWindowKeydown, true);

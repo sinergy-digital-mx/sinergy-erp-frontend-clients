@@ -15,6 +15,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { SidebarService } from '../../../../core/services/sidebar.service';
 import {
   LucideAngularModule,
   Wallet,
@@ -596,6 +597,8 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     () => !this.stampEnvironment() || !this.fiscalReadyForInvoice(),
   );
 
+  private readonly sidebar = inject(SidebarService);
+
   constructor(
     private posService: POSService,
     public posState: PosStateService,
@@ -614,6 +617,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   private preselectOrderId = signal<string | null>(null);
 
   ngOnInit(): void {
+    this.sidebar.enterPosWorkbench('caja');
     document.addEventListener('fullscreenchange', this.onFullscreenChange);
     document.addEventListener('visibilitychange', this.onVisibilityChange);
     this.startCajaRecallStream();
@@ -636,6 +640,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.sidebar.leavePosWorkbench('caja');
     this.destroyed = true;
     this.clearCollectedBadgeTimer();
     document.removeEventListener('fullscreenchange', this.onFullscreenChange);

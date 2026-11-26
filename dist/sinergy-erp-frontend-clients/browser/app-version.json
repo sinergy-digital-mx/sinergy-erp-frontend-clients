@@ -1,42 +1,24 @@
 {
-  "version": "0.0.201",
-  "buildId": "0.0.201-1795721239466",
-  "builtAt": "2026-11-26T19:27:19.466Z",
+  "version": "0.0.202",
+  "buildId": "0.0.202-1795725148718",
+  "builtAt": "2026-11-26T20:32:28.718Z",
   "channel": "full",
   "changes": [
     {
       "scope": "frontend",
-      "message": "En Falta y Cambio cada monto lleva un badge chico de MXN o USD.",
+      "message": "En Caja, el panel de cobro entra deslizándose desde la derecha.",
       "module": "pos",
       "moduleLabel": "POS Ventas"
     },
     {
       "scope": "frontend",
-      "message": "En el cobro, Para envío quedó chico en el encabezado, junto a cerrar.",
+      "message": "Al abrir Ventas o Caja el menú de la izquierda se cierra solo y se puede volver a abrir.",
       "module": "pos",
       "moduleLabel": "POS Ventas"
     },
     {
       "scope": "frontend",
-      "message": "En efectivo, las cartas de pesos y dólares quedan del mismo alto y el título más chico.",
-      "module": "pos",
-      "moduleLabel": "POS Ventas"
-    },
-    {
-      "scope": "frontend",
-      "message": "Sin crédito quedó como botón dentro de la fila del cliente, y el modal abre encima del panel de cobro.",
-      "module": "pos",
-      "moduleLabel": "POS Ventas"
-    },
-    {
-      "scope": "frontend",
-      "message": "Desde Caja, Sin crédito abre el crédito del cliente encima del panel de cobro.",
-      "module": "customers",
-      "moduleLabel": "Clientes"
-    },
-    {
-      "scope": "frontend",
-      "message": "En Ventas, C1 C2 y C3 quedaron en la misma pastilla, el icono del carrito en un círculo, y se quitó toca para el ticket.",
+      "message": "Se quitó estilo sin uso del cobro para que el build no pase de 60 kB.",
       "module": "pos",
       "moduleLabel": "POS Ventas"
     }
