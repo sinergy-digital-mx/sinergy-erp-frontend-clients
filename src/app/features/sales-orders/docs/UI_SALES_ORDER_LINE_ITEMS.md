@@ -1,5 +1,9 @@
 # UI — Editar / eliminar líneas de orden de venta
 
+## 2026-11-27 — Encabezado del detalle
+
+En el detalle, pago, facturas y estado van en una sola franja (misma altura, pegados, con divisor). Se quitó el badge Mostrador. La ventana de la orden ocupa casi toda la pantalla. El encabezado de la tabla de productos queda como el de mostrador: fijo, mayúsculas, producto a la izquierda y montos a la derecha.
+
 El detalle de la OV **se edita por línea** en el mismo diálogo, igual que la orden de compra. No abrir `/sales-orders/:id/edit` ni otra pestaña para cambiar precio, IVA o productos.
 
 No uses `PUT /api/tenant/sales-orders/:id` para cambiar **una** línea: ese endpoint reemplaza **todas** las líneas. Usa PATCH/POST/DELETE de línea.

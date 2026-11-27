@@ -191,13 +191,35 @@
                     </div>
                     <div class="role-item__content">
                       <p class="role-item__name">{{ role.name }}</p>
-                      <p class="role-item__meta">
-                        {{ role.permissions.length }} permiso{{ role.permissions.length !== 1 ? 's' : '' }}
+                      <div class="role-item__meta">
+                        {{ rolePermissionCount(role) }} permiso{{ rolePermissionCount(role) !== 1 ? 's' : '' }}
+                        @if (hasRoleModules(role)) {
+                          <span class="role-item__dot">·</span>
+                          <button
+                            type="button"
+                            class="role-modules-toggle"
+                            [attr.aria-expanded]="isRoleModulesOpen(role.id)"
+                            (click)="toggleRoleModules(role.id)">
+                            {{ roleModuleCount(role) }} módulo{{ roleModuleCount(role) !== 1 ? 's' : '' }}
+                            <lucide-icon
+                              [img]="isRoleModulesOpen(role.id) ? icons.ChevronUp : icons.ChevronDown"
+                              [size]="14">
+                            </lucide-icon>
+                          </button>
+                        }
                         @if (role.description) {
                           <span class="role-item__dot">·</span>
                           <span class="role-item__desc">{{ role.description }}</span>
                         }
-                      </p>
+                      </div>
+                      @if (canEditRoles) {
+                        <button
+                          type="button"
+                          class="role-edit-link"
+                          (click)="openRoleEditor(role.id)">
+                          Editar rol
+                        </button>
+                      }
                     </div>
                     <div class="role-item__actions">
                       <button
@@ -218,6 +240,16 @@
                       </button>
                     </div>
                   </div>
+
+                  @if (hasRoleModules(role) && isRoleModulesOpen(role.id) && roleModuleCount(role) > 0) {
+                    <ul class="role-modules">
+                      @for (module of roleModules(role); track module.id) {
+                        <li class="role-modules__item" [title]="module.permission_count + ' permisos'">
+                          {{ module.name }}
+                        </li>
+                      }
+                    </ul>
+                  }
 
                   @if (replacingRoleId === role.id) {
                     <div class="role-replace">

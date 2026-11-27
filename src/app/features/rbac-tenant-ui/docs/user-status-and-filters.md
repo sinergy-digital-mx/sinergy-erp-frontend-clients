@@ -31,5 +31,9 @@ A la derecha de **Filtrar por estado**: **Filtrar por rol**.
 
 `GET /tenant/users?search=&status_id=&role_id=`
 
+### 2026-11-27
+
+La búsqueda se guarda en la URL (`/settings/users?search=`). Al refrescar, el campo y el filtro se restauran. Si se borra el texto, el parámetro sale de la URL.
+
 - Sin `status_id`: activos e inactivos (no eliminados).
 - `Todos` omite el query param. No se envía `role_id` vacío.

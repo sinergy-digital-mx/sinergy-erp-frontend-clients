@@ -1,5 +1,6 @@
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { SearchComponent } from '../../../../core/components/search/search.component';
 import { SelectComponent, ISelect } from '../../../../core/components/select/select.component';
 import { StateService } from '../../services/state.service';
@@ -14,6 +15,7 @@ import { CatalogStatus, Role, UserStatus } from '../../models';
       <div class="w-full overflow-hidden">
         <app-search
           placeholder="Buscar por email..."
+          [default_value]="initialSearch"
           (searchChange)="onSearchChange($event)"
         ></app-search>
       </div>
@@ -72,8 +74,14 @@ export class UserSearchFilterComponent implements OnChanges {
 
   statusFilterConfig: ISelect;
   roleFilterConfig: ISelect;
+  initialSearch = '';
 
-  constructor(private stateService: StateService) {
+  constructor(
+    private stateService: StateService,
+    private router: Router,
+    private route: ActivatedRoute,
+  ) {
+    this.initialSearch = this.route?.snapshot?.queryParamMap?.get('search')?.trim() ?? '';
     this.statusFilterConfig = this.buildStatusConfig([]);
     this.roleFilterConfig = this.buildRoleConfig([]);
   }
@@ -88,7 +96,21 @@ export class UserSearchFilterComponent implements OnChanges {
   }
 
   onSearchChange(searchQuery: string): void {
-    this.stateService.setUserSearchFilter(searchQuery);
+    const next = searchQuery?.trim() ?? '';
+    this.stateService.setUserSearchFilter(next);
+    if (!this.router || !this.route) {
+      return;
+    }
+    const current = this.route.snapshot.queryParamMap.get('search')?.trim() ?? '';
+    if (current === next) {
+      return;
+    }
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { search: next || null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   onStatusFilterChange(event: { value?: string | null }): void {

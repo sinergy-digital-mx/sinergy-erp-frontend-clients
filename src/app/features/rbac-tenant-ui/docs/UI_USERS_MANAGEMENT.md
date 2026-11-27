@@ -18,6 +18,12 @@ El modal crear/editar respeta el ancho de la pantalla (`max-width: calc(100vw - 
 
 ## Cambios
 
+### 2026-11-27
+
+En el detalle, cada rol muestra cuántos módulos cubre y la lista de esos módulos (se puede ocultar). Salen de `modules` en `GET /tenant/users/:id/roles`. Si esa respuesta aún no trae `modules`, se arman con `GET /tenant/roles/:roleId/permissions/available` (solo módulos con algún permiso asignado). Si la sesión puede editar roles (`role:Update` o `role:ViewMenu`), **Editar rol** abre `/settings/roles?role=<id>` con ese rol seleccionado.
+
+La búsqueda de usuarios queda en `?search=`. Al refrescar, el texto sigue en el campo y el listado vuelve a pedir ese filtro.
+
 ### 2026-10-24
 
 Vista responsive en celular. Escritorio igual.

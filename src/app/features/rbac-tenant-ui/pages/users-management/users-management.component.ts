@@ -1,9 +1,9 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Observable, combineLatest, map, switchMap, of, BehaviorSubject, startWith, Subject, filter, catchError, EMPTY } from 'rxjs';
+import { Observable, combineLatest, map, switchMap, of, BehaviorSubject, startWith, Subject, filter, catchError, EMPTY, forkJoin } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { User, Role, CatalogStatus, UserListQuery, getPosUserTypeBadgeLabel, getUserStatusCode, getUserStatusLabel } from '../../models';
+import { User, Role, RoleModuleSummary, AvailablePermissionsResponse, CatalogStatus, UserListQuery, getPosUserTypeBadgeLabel, getUserStatusCode, getUserStatusLabel } from '../../models';
 import { StateService } from '../../services/state.service';
 import { UserService } from '../../services/user.service';
 import { RoleService } from '../../services/role.service';
@@ -86,7 +86,9 @@ export class UsersManagementComponent implements OnInit, OnDestroy {
     this.selectedUserRoles$ = combineLatest([this.selectedUserId$, this.refreshUserRoles$]).pipe(
       switchMap(([userId]) => {
         if (!userId) return of([]);
-        return this.userService.getUserRoles(userId);
+        return this.userService.getUserRoles(userId).pipe(
+          switchMap((roles) => this.withRoleModules(roles))
+        );
       })
     );
 
@@ -106,6 +108,10 @@ export class UsersManagementComponent implements OnInit, OnDestroy {
     this.stateService.resetFilters();
     this.stateService.clearUserSelection();
     this.stateService.updateUsers([]);
+    const search = this.activatedRoute?.snapshot?.queryParamMap?.get('search')?.trim() ?? '';
+    if (search) {
+      this.stateService.setUserSearchFilter(search);
+    }
 
     this.userService.getUserStatuses().subscribe({
       next: (statuses) => {
@@ -200,6 +206,39 @@ export class UsersManagementComponent implements OnInit, OnDestroy {
   private currentSearch = '';
   private currentStatus: string = 'all';
   private currentRoleId = '';
+
+  private withRoleModules(roles: Role[]): Observable<Role[]> {
+    if (!roles.length || roles.every((role) => Array.isArray(role.modules))) {
+      return of(roles);
+    }
+    return forkJoin(
+      roles.map((role) => {
+        if (Array.isArray(role.modules)) {
+          return of(role);
+        }
+        return this.roleService.getRolePermissionsAvailable(role.id).pipe(
+          map((response) => ({ ...role, modules: this.modulesFromAvailable(response) })),
+          catchError(() => of({ ...role, modules: [] as RoleModuleSummary[] }))
+        );
+      })
+    );
+  }
+
+  private modulesFromAvailable(response: AvailablePermissionsResponse): RoleModuleSummary[] {
+    const modules = response?.categories?.length
+      ? response.categories.flatMap((category) => category.modules || [])
+      : response?.modules || [];
+
+    return modules
+      .map((module) => ({
+        id: module.id,
+        name: module.name,
+        code: module.code,
+        permission_count: (module.permissions || []).filter((permission) => permission.assigned).length,
+      }))
+      .filter((module) => module.permission_count > 0)
+      .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+  }
 
   private buildListQuery(search: string, status: string, roleId: string): UserListQuery {
     this.currentSearch = search;

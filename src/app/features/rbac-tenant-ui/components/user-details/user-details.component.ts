@@ -1,9 +1,11 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { Observable, BehaviorSubject, Subscription } from 'rxjs';
 import {
   User,
   Role,
+  RoleModuleSummary,
   getPosUserTypeLabel,
   userHasOpenGlobalCut,
   getUserStatusCode,
@@ -14,7 +16,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 import { UserDetailModalComponent } from '../user-detail-modal/user-detail-modal.component';
-import { LucideAngularModule, Shield, Plus, RefreshCw, Trash2, X } from 'lucide-angular';
+import { LucideAngularModule, Shield, Plus, RefreshCw, Trash2, X, ChevronDown, ChevronUp } from 'lucide-angular';
 import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
@@ -25,7 +27,7 @@ import { AuthService } from '../../../../core/services/auth.service';
   styleUrl: './user-details.component.scss'
 })
 export class UserDetailsComponent implements OnInit, OnDestroy {
-  readonly icons = { Shield, Plus, RefreshCw, Trash2, X };
+  readonly icons = { Shield, Plus, RefreshCw, Trash2, X, ChevronDown, ChevronUp };
 
   @Input() user!: User;
   @Input() userRoles$!: Observable<Role[]>;
@@ -45,11 +47,13 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
 
   selectedRoleIdForAssignment$ = new BehaviorSubject<string | null>(null);
   private rolesSub?: Subscription;
+  private collapsedRoleModules = new Set<string>();
 
   constructor(
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
-    private authService: AuthService
+    private authService: AuthService,
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -171,6 +175,55 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
       return false;
     }
     return this.hasUserPermission('Delete');
+  }
+
+  /** Quien puede abrir Roles y permisos o editar un rol. */
+  get canEditRoles(): boolean {
+    if (!this.authService) {
+      return false;
+    }
+    return (
+      this.authService.hasPermission('role:Update') ||
+      this.authService.hasPermission('role:ViewMenu')
+    );
+  }
+
+  rolePermissionCount(role: Role): number {
+    if (Array.isArray(role?.permissions)) {
+      return role.permissions.length;
+    }
+    return role?.permission_count ?? 0;
+  }
+
+  hasRoleModules(role: Role): boolean {
+    return Array.isArray(role?.modules);
+  }
+
+  roleModules(role: Role): RoleModuleSummary[] {
+    return Array.isArray(role?.modules) ? role.modules : [];
+  }
+
+  roleModuleCount(role: Role): number {
+    return this.roleModules(role).length;
+  }
+
+  isRoleModulesOpen(roleId: string): boolean {
+    return !this.collapsedRoleModules.has(roleId);
+  }
+
+  toggleRoleModules(roleId: string): void {
+    if (this.collapsedRoleModules.has(roleId)) {
+      this.collapsedRoleModules.delete(roleId);
+    } else {
+      this.collapsedRoleModules.add(roleId);
+    }
+  }
+
+  openRoleEditor(roleId: string): void {
+    if (!this.canEditRoles || !this.router) {
+      return;
+    }
+    this.router.navigate(['/settings', 'roles'], { queryParams: { role: roleId } });
   }
 
   private hasUserPermission(action: 'Update' | 'Delete'): boolean {

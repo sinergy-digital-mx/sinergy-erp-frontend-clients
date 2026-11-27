@@ -86,8 +86,10 @@ export class RolesManagementComponent implements OnInit {
     this.roleService.getRoles().subscribe({
       next: (roles) => {
         this.stateService.updateRoles(roles);
-        if (selectRoleId) {
-          this.stateService.selectRole(selectRoleId);
+        const roleId =
+          selectRoleId || this.activatedRoute?.snapshot?.queryParamMap?.get('role') || '';
+        if (roleId) {
+          this.stateService.selectRole(roleId);
         }
         this.isLoadingRoles$.next(false);
       },
@@ -104,6 +106,19 @@ export class RolesManagementComponent implements OnInit {
 
   onRoleSelected(roleId: string): void {
     this.stateService.selectRole(roleId);
+    if (!this.router || !this.activatedRoute) {
+      return;
+    }
+    const current = this.activatedRoute.snapshot.queryParamMap.get('role');
+    if (current === roleId) {
+      return;
+    }
+    this.router.navigate([], {
+      relativeTo: this.activatedRoute,
+      queryParams: { role: roleId },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   onRoleSearchChange(event: Event): void {

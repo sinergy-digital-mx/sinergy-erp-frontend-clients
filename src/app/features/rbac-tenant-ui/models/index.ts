@@ -361,12 +361,20 @@ export interface AvailablePermissionsResponse {
   categories: PermissionCategory[];
 }
 
+export interface RoleModuleSummary {
+  id: string;
+  name: string;
+  code: string;
+  permission_count: number;
+}
+
 export interface Role {
   id: string;
   name: string;
   description?: string;
   permissions: string[];
   permission_count?: number;
+  modules?: RoleModuleSummary[];
   is_admin?: boolean;
   createdAt?: Date | string;
   updatedAt?: Date | string;

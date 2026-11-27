@@ -79,47 +79,47 @@
         <app-sales-order-subscription-link [orderId]="order()!.id" />
       </div>
       <div class="dialog-header-actions">
-        <span
-          class="currency-badge currency-badge--order"
-          [class.currency-badge--usd]="documentCurrency() === 'USD'"
-          [title]="orderCurrencyLabel()">
-          {{ orderCurrencyLabel() }}
-        </span>
-        @if (getPaymentStatus()) {
-          <span class="status-badge" [ngClass]="getPaymentStatusBadgeClass()">
-            {{ getPaymentStatus() }}
+        <div class="header-status">
+          <span
+            class="currency-badge currency-badge--order"
+            [class.currency-badge--usd]="documentCurrency() === 'USD'"
+            [title]="orderCurrencyLabel()">
+            {{ orderCurrencyLabel() }}
           </span>
-        }
-        @if (creditChipLabel()) {
-          <span class="status-badge status-badge--credit">{{ creditChipLabel() }}</span>
-        }
-        @if (invoiceSummary()) {
-          <span class="status-badge status-badge--invoice">{{ invoiceSummary() }}</span>
-        }
-        @if (hasCreditNoteBadge()) {
-          <span class="status-badge status-badge--credit-note">Nota de crédito</span>
-        }
-        @if (customerCreditAmount() > 0) {
-          <span class="status-badge status-badge--favor">
-            Saldo a favor {{ formatPaymentCurrency(customerCreditAmount()) }}
-          </span>
-        }
-        <span class="status-badge" [ngClass]="getStatusBadgeClass()">
-          {{ order()!.general_status || '-' }}
-        </span>
-        @if (isForShipping()) {
-          <span class="status-badge status-badge--shipping">Para envío</span>
-          @if (order()!.logistics_route; as route) {
-            <span class="status-badge status-badge--invoice">{{ route.name }}</span>
+          @if (getPaymentStatus()) {
+            <span class="status-badge" [ngClass]="getPaymentStatusBadgeClass()">
+              {{ getPaymentStatus() }}
+            </span>
           }
-        } @else {
-          <span class="status-badge">Mostrador</span>
-        }
-        @if (shippingInfo()?.has_shipping) {
-          <span class="status-badge status-badge--invoice">
-            En envío{{ shippingInfo()?.status ? ' · ' + shippingInfo()!.status : '' }}
+          @if (creditChipLabel()) {
+            <span class="status-badge status-badge--credit">{{ creditChipLabel() }}</span>
+          }
+          @if (invoiceSummary()) {
+            <span class="status-badge status-badge--invoice">{{ invoiceSummary() }}</span>
+          }
+          @if (hasCreditNoteBadge()) {
+            <span class="status-badge status-badge--credit-note">Nota de crédito</span>
+          }
+          @if (customerCreditAmount() > 0) {
+            <span class="status-badge status-badge--favor">
+              Saldo a favor {{ formatPaymentCurrency(customerCreditAmount()) }}
+            </span>
+          }
+          <span class="status-badge" [ngClass]="getStatusBadgeClass()">
+            {{ order()!.general_status || '-' }}
           </span>
-        }
+          @if (isForShipping()) {
+            <span class="status-badge status-badge--shipping">Para envío</span>
+            @if (order()!.logistics_route; as route) {
+              <span class="status-badge status-badge--invoice">{{ route.name }}</span>
+            }
+          }
+          @if (shippingInfo()?.has_shipping) {
+            <span class="status-badge status-badge--invoice">
+              En envío{{ shippingInfo()?.status ? ' · ' + shippingInfo()!.status : '' }}
+            </span>
+          }
+        </div>
         <button
           type="button"
           class="refresh-btn"
