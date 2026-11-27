@@ -1,5 +1,9 @@
 # UI — Editar / eliminar líneas de orden de venta
 
+## 2026-11-27 — Tarjetas del lateral
+
+Razón social, sucursal, folio público y envío ya no llevan título. Cada tarjeta queda en dos líneas, un poco más baja y con texto más chico. Cliente conserva el título y el nombre debajo.
+
 ## 2026-11-27 — Encabezado del detalle
 
 En el detalle, pago, facturas y estado van en una sola franja (misma altura, pegados, con divisor). Se quitó el badge Mostrador. La ventana de la orden ocupa casi toda la pantalla. El encabezado de la tabla de productos queda como el de mostrador: fijo, mayúsculas, producto a la izquierda y montos a la derecha.

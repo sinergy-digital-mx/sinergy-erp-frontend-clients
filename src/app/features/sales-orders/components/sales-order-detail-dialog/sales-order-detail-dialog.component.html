@@ -150,10 +150,9 @@
               <i class="fi fi-rr-document"></i>
             </div>
             <div class="info-card__content">
-              <span class="info-card__label">RAZÓN SOCIAL</span>
-              <span class="info-card__value">{{ getRazonSocialDisplayName() }}</span>
+              <span class="info-card__value" [title]="getRazonSocialDisplayName()">{{ getRazonSocialDisplayName() }}</span>
               @if (getRazonSocialSubtitle()) {
-                <span class="info-card__subvalue">{{ getRazonSocialSubtitle() }}</span>
+                <span class="info-card__subvalue" [title]="getRazonSocialSubtitle()">{{ getRazonSocialSubtitle() }}</span>
               }
             </div>
             @if (canOpenFiscal()) {
@@ -173,10 +172,9 @@
               <i class="fi fi-rr-building"></i>
             </div>
             <div class="info-card__content">
-              <span class="info-card__label">SUCURSAL</span>
-              <span class="info-card__value">{{ getSucursalDisplayName() }}</span>
+              <span class="info-card__value" [title]="getSucursalDisplayName()">{{ getSucursalDisplayName() }}</span>
               @if (getSucursalSubtitle()) {
-                <span class="info-card__subvalue">{{ getSucursalSubtitle() }}</span>
+                <span class="info-card__subvalue" [title]="getSucursalSubtitle()">{{ getSucursalSubtitle() }}</span>
               }
             </div>
             @if (canOpenBranch()) {
@@ -197,10 +195,7 @@
             </div>
             <div class="info-card__content">
               <span class="info-card__label">CLIENTE</span>
-              <span class="info-card__value">{{ getCustomerDisplayName() }}</span>
-              @if (getCustomerCompanyName()) {
-                <span class="info-card__subvalue">{{ getCustomerCompanyName() }}</span>
-              }
+              <span class="info-card__value" [title]="getCustomerDisplayName()">{{ getCustomerDisplayName() }}</span>
             </div>
             @if (canOpenCustomer()) {
               <i class="fi fi-rr-angle-right info-card__chevron"></i>
@@ -213,8 +208,7 @@
                 <i class="fi fi-rr-ticket"></i>
               </div>
               <div class="info-card__content">
-                <span class="info-card__label">FOLIO PÚBLICO</span>
-                <span class="info-card__value">{{ publicCode }}</span>
+                <span class="info-card__value" [title]="publicCode">{{ publicCode }}</span>
                 @if (getSelfInvoiceUrl(); as invoiceUrl) {
                   <a
                     class="info-card__subvalue info-card__subvalue--link"
@@ -260,7 +254,6 @@
             <i class="fi fi-rr-truck-side"></i>
           </div>
           <div class="info-card__content">
-            <span class="info-card__label">ENVÍO</span>
             <span class="info-card__value">{{ isForShipping() ? 'Requiere envío' : 'Mostrador' }}</span>
             <span class="info-card__subvalue">
               @if (isForShipping() && order()!.logistics_route) {

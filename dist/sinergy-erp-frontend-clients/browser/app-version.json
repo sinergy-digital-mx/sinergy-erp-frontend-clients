@@ -1,14 +1,14 @@
 {
-  "version": "0.0.211",
-  "buildId": "0.0.211-1795822199149",
-  "builtAt": "2026-11-27T23:29:59.149Z",
+  "version": "0.0.212",
+  "buildId": "0.0.212-1795822815840",
+  "builtAt": "2026-11-27T23:40:15.840Z",
   "channel": "full",
   "changes": [
     {
       "scope": "frontend",
-      "message": "En roles, el editor muestra cuántos módulos tiene el rol y permite ver solo asignados o sin asignar, y contraer o mostrar todo.",
-      "module": "settings",
-      "moduleLabel": "Configuración"
+      "message": "En el detalle, razón social, sucursal, folio y envío quedan en dos líneas, más bajas y sin título. Cliente conserva el título y el nombre.",
+      "module": "sales-orders",
+      "moduleLabel": "Órdenes de venta"
     }
   ]
 }

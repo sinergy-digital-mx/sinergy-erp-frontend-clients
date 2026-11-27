@@ -61,7 +61,7 @@ import { BranchModalComponent } from '../../../settings/components/branch-modal/
 import { FiscalConfigurationModalComponent } from '../../../settings/components/fiscal-configuration-modal/fiscal-configuration-modal.component';
 import { FiscalConfigurationService } from '../../../settings/services/fiscal-configuration.service';
 import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
-import { formatTitleCase, getSalesOrderListCompanyName } from '../../utils/sales-order-display.util';
+import { formatTitleCase } from '../../utils/sales-order-display.util';
 import { salesOrderCreditChipLabel } from '../../utils/sales-order-credit.util';
 import {
   salesOrderCollectionChannel,
@@ -1577,10 +1577,6 @@ export class SalesOrderDetailDialogComponent {
 
   getCustomerDisplayName(): string {
     return formatTitleCase(resolveSalesOrderCustomerName(this.order()));
-  }
-
-  getCustomerCompanyName(): string {
-    return getSalesOrderListCompanyName(this.order());
   }
 
   getSucursalDisplayName(): string {

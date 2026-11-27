@@ -2207,3 +2207,61 @@ button.ship-flag {
     margin-bottom: 1rem;
   }
 }
+
+.order-detail-dialog {
+  .info-cards-group {
+    gap: 6px;
+  }
+
+  .info-card {
+    gap: 8px;
+    padding: 6px 10px;
+
+    &__icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+
+      i {
+        font-size: 12px;
+      }
+    }
+
+    &__content {
+      gap: 1px;
+    }
+
+    &__label,
+    &__value,
+    &__subvalue {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    &__label {
+      margin-bottom: 0;
+      font-size: 9px;
+      line-height: 1.15;
+    }
+
+    &__value {
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    &__subvalue {
+      font-size: 11px;
+      line-height: 1.25;
+    }
+  }
+
+  .info-card--folio .info-card__value {
+    font-size: 11px;
+  }
+
+  .info-card__action {
+    width: 1.35rem;
+    height: 1.35rem;
+  }
+}
