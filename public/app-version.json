@@ -1,26 +1,14 @@
 {
-  "version": "0.0.213",
-  "buildId": "0.0.213-1795823095329",
-  "builtAt": "2026-11-27T23:44:55.329Z",
+  "version": "0.0.214",
+  "buildId": "0.0.214-1795823698721",
+  "builtAt": "2026-11-27T23:54:58.721Z",
   "channel": "full",
   "changes": [
     {
       "scope": "frontend",
-      "message": "En el detalle, moneda y estado van en una sola franja y la ventana ocupa casi toda la pantalla. Razón social y sucursal quedan en dos líneas sin título; creado por, proveedor y almacén conservan el suyo.",
-      "module": "purchase-orders",
-      "moduleLabel": "Órdenes de compra"
-    },
-    {
-      "scope": "frontend",
-      "message": "En el detalle, moneda y estado van en una sola franja y la ventana ocupa casi toda la pantalla. Razón social y sucursal quedan en dos líneas sin título; cliente conserva el suyo.",
-      "module": "quotations",
-      "moduleLabel": "Cotizaciones"
-    },
-    {
-      "scope": "frontend",
-      "message": "En roles, cada permiso muestra la descripción en negrita y el código abajo.",
-      "module": "settings",
-      "moduleLabel": "Configuración"
+      "message": "En el detalle, vendedor y comisionado muestran solo el nombre y el cambio es un icono de lápiz junto al nombre.",
+      "module": "sales-orders",
+      "moduleLabel": "Órdenes de venta"
     }
   ]
 }

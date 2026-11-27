@@ -26,8 +26,12 @@ Snapshot. Cambiar el asignado del cliente no mueve órdenes ya hechas.
 
 Cards: **Razón social → Sucursal → Cliente**.
 
-- Vendedor: `{nombre} ({pos_user_code})` o `Sin vendedor` — Cambiar → `PATCH .../seller`
-- Comisionado: igual, o `Sin comisionado` — Cambiar → `PATCH .../assigned-seller`
+## 2026-11-27 — Nombre y cambio
+
+En el detalle, vendedor y comisionado muestran solo el nombre, sin el código. El cambio es un icono de lápiz en la misma línea.
+
+- Vendedor: nombre o `Sin vendedor` — icono → `PATCH .../seller`
+- Comisionado: igual, o `Sin comisionado` — icono → `PATCH .../assigned-seller`
 - Helper: `Quien comisiona esta venta`
 
 Deshabilitar cambios si la orden está `Cancelada`. Catálogo: `sellers` activos de `GET /tenant/customers/registration-options`. Inactivos y eliminados no se listan; si la OV ya tiene uno de esos, se conserva en el select.

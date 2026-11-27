@@ -31,7 +31,7 @@ import {
   SalesOrderPaymentDocument,
   SalesOrderPaymentDisplayLine,
 } from '../../models/sales-order-payment.model';
-import { formatPosUser } from '../../utils/pos-user-display.util';
+import { formatPosUser, formatPosUserName } from '../../utils/pos-user-display.util';
 import { openInvoicePdfViewer } from '../../../accounting/components/invoice-pdf-viewer-dialog/invoice-pdf-viewer-dialog.component';
 import { resolveSalesOrderCustomerName, resolveSalesOrderCustomerId } from '../../utils/customer-display.util';
 import {
@@ -786,7 +786,7 @@ export class SalesOrderDetailDialogComponent {
     if (!seller) {
       return 'Sin vendedor';
     }
-    return formatPosUser(seller);
+    return formatPosUserName(seller);
   }
 
   getAssignedSellerDisplayName(): string {
@@ -794,7 +794,7 @@ export class SalesOrderDetailDialogComponent {
     if (!seller) {
       return 'Sin comisionado';
     }
-    return formatPosUser(seller);
+    return formatPosUserName(seller);
   }
 
   getCorroboratedByLabel(): string {
