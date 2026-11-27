@@ -46,8 +46,12 @@ export class RolePermissionsManagerComponent implements OnInit, OnChanges {
   saving = false;
   hasChanges = false;
   permissionSearch = '';
+  assignmentFilter: 'all' | 'assigned' | 'unassigned' = 'all';
   readonly skeletonSlots = [0, 1, 2, 3];
   originalPermissions: Set<string> = new Set();
+  private openCategories = new Set<string>();
+  private openModules = new Set<string>();
+  private searchAutoExpand = true;
 
   constructor(
     private roleService: RoleService,
@@ -65,28 +69,32 @@ export class RolePermissionsManagerComponent implements OnInit, OnChanges {
   ngOnChanges() {
     if (this.role) {
       this.permissionSearch = '';
+      this.assignmentFilter = 'all';
+      this.searchAutoExpand = true;
       this.loadPermissions();
     }
   }
 
   get filteredCategories(): CategoryPermissions[] {
     const query = this.permissionSearch.trim().toLowerCase();
-    if (!query) {
-      return this.categoryPermissions;
-    }
-
     const result: CategoryPermissions[] = [];
 
     for (const category of this.categoryPermissions) {
       const modules: ModulePermissions[] = [];
 
       for (const module of category.modules) {
-        const moduleMatches = module.module_name.toLowerCase().includes(query);
-        const permissions = module.permissions.filter(permission =>
-          moduleMatches ||
-          permission.name.toLowerCase().includes(query) ||
-          permission.description.toLowerCase().includes(query)
-        );
+        if (!this.moduleMatchesAssignment(module)) {
+          continue;
+        }
+
+        const moduleMatches = !query || module.module_name.toLowerCase().includes(query);
+        const permissions = !query
+          ? module.permissions
+          : module.permissions.filter(permission =>
+              moduleMatches ||
+              permission.name.toLowerCase().includes(query) ||
+              permission.description.toLowerCase().includes(query)
+            );
 
         if (!moduleMatches && permissions.length === 0) {
           continue;
@@ -95,18 +103,16 @@ export class RolePermissionsManagerComponent implements OnInit, OnChanges {
         modules.push({
           ...module,
           permissions: moduleMatches ? module.permissions : permissions,
-          isExpanded: true,
         });
       }
 
-      if (modules.length === 0 && !category.label.toLowerCase().includes(query)) {
+      if (modules.length === 0) {
         continue;
       }
 
       result.push({
         ...category,
         modules,
-        isExpanded: true,
       });
     }
 
@@ -165,6 +171,9 @@ export class RolePermissionsManagerComponent implements OnInit, OnChanges {
     );
 
     this.categoryPermissions = this.buildCategories(response, modules);
+    this.openCategories = new Set(this.categoryPermissions.map(category => category.code));
+    this.openModules.clear();
+    this.searchAutoExpand = true;
   }
 
   private extractModules(response: AvailablePermissionsResponse): AvailableModule[] {
@@ -243,16 +252,71 @@ export class RolePermissionsManagerComponent implements OnInit, OnChanges {
     return this.categoryPermissions.flatMap(category => category.modules);
   }
 
+  onPermissionSearchChange(): void {
+    this.searchAutoExpand = true;
+    if (!this.permissionSearch.trim()) {
+      return;
+    }
+    for (const category of this.filteredCategories) {
+      this.openCategories.add(category.code);
+    }
+  }
+
   clearPermissionSearch(): void {
     this.permissionSearch = '';
+    this.searchAutoExpand = true;
+  }
+
+  setAssignmentFilter(filter: 'all' | 'assigned' | 'unassigned'): void {
+    this.assignmentFilter = filter;
+    if (filter !== 'all') {
+      this.openCategories = new Set(this.categoryPermissions.map(category => category.code));
+    }
+  }
+
+  showAll(): void {
+    this.searchAutoExpand = true;
+    this.openCategories = new Set(this.categoryPermissions.map(category => category.code));
+    this.openModules = new Set(this.getAllModules().map(module => module.module_id));
+  }
+
+  collapseAll(): void {
+    this.searchAutoExpand = false;
+    this.openCategories.clear();
+    this.openModules.clear();
+  }
+
+  isCategoryOpen(category: CategoryPermissions): boolean {
+    return this.openCategories.has(category.code);
+  }
+
+  isModuleOpen(module: ModulePermissions): boolean {
+    if (this.hasActiveSearch && this.searchAutoExpand) {
+      return true;
+    }
+    return this.openModules.has(module.module_id);
   }
 
   toggleCategory(category: CategoryPermissions) {
-    category.isExpanded = !category.isExpanded;
+    if (this.openCategories.has(category.code)) {
+      this.openCategories.delete(category.code);
+      return;
+    }
+    this.openCategories.add(category.code);
   }
 
   toggleModule(module: ModulePermissions) {
-    module.isExpanded = !module.isExpanded;
+    if (this.hasActiveSearch && this.searchAutoExpand) {
+      this.openModules = new Set(
+        this.filteredCategories.flatMap(category => category.modules.map(item => item.module_id))
+      );
+      this.searchAutoExpand = false;
+    }
+    if (this.openModules.has(module.module_id)) {
+      this.openModules.delete(module.module_id);
+      return;
+    }
+    this.openModules.add(module.module_id);
   }
 
   togglePermission(permission: PermissionItem) {
@@ -292,6 +356,86 @@ export class RolePermissionsManagerComponent implements OnInit, OnChanges {
       (total, module) => total + this.getModuleAssignedCount(module),
       0
     );
+  }
+
+  get totalModuleCount(): number {
+    return this.getAllModules().length;
+  }
+
+  get assignedModuleCount(): number {
+    return this.getAllModules().filter(module => this.getModuleAssignedCount(module) > 0).length;
+  }
+
+  get unassignedModuleCount(): number {
+    return this.totalModuleCount - this.assignedModuleCount;
+  }
+
+  categoryAssignedPermissions(code: string): number {
+    const category = this.findCategory(code);
+    return category ? this.getCategoryAssignedCount(category) : 0;
+  }
+
+  categoryTotalPermissions(code: string): number {
+    const category = this.findCategory(code);
+    return category ? this.getCategoryTotalPermissions(category) : 0;
+  }
+
+  categoryAssignedModules(code: string): number {
+    const category = this.findCategory(code);
+    if (!category) {
+      return 0;
+    }
+    return category.modules.filter(module => this.getModuleAssignedCount(module) > 0).length;
+  }
+
+  categoryTotalModules(code: string): number {
+    return this.findCategory(code)?.modules.length ?? 0;
+  }
+
+  moduleAssigned(moduleId: string): number {
+    const module = this.findModule(moduleId);
+    return module ? this.getModuleAssignedCount(module) : 0;
+  }
+
+  moduleTotal(moduleId: string): number {
+    return this.findModule(moduleId)?.permissions.length ?? 0;
+  }
+
+  moduleStatus(moduleId: string): 'full' | 'partial' | 'empty' {
+    const total = this.moduleTotal(moduleId);
+    const assigned = this.moduleAssigned(moduleId);
+    if (total === 0 || assigned === 0) {
+      return 'empty';
+    }
+    if (assigned === total) {
+      return 'full';
+    }
+    return 'partial';
+  }
+
+  private moduleMatchesAssignment(module: ModulePermissions): boolean {
+    const assigned = this.getModuleAssignedCount(module);
+    if (this.assignmentFilter === 'assigned') {
+      return assigned > 0;
+    }
+    if (this.assignmentFilter === 'unassigned') {
+      return assigned === 0;
+    }
+    return true;
+  }
+
+  private findCategory(code: string): CategoryPermissions | undefined {
+    return this.categoryPermissions.find(category => category.code === code);
+  }
+
+  private findModule(moduleId: string): ModulePermissions | undefined {
+    for (const category of this.categoryPermissions) {
+      const module = category.modules.find(item => item.module_id === moduleId);
+      if (module) {
+        return module;
+      }
+    }
+    return undefined;
   }
 
   private checkForChanges() {
