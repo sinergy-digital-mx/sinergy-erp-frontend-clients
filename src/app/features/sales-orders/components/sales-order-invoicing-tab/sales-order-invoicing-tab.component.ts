@@ -19,6 +19,7 @@ import {
 } from '../../models/sales-order-electronic-invoice.model';
 import { SalesOrder, SalesOrderLineItem, Customer } from '../../models/sales-order.model';
 import { SalesOrderInvoiceService } from '../../services/sales-order-invoice.service';
+import { openInvoicePdfViewer } from '../../../accounting/components/invoice-pdf-viewer-dialog/invoice-pdf-viewer-dialog.component';
 import {
   countPendingSyncInvoices,
   countVigenteInvoices,
@@ -577,7 +578,11 @@ export class SalesOrderInvoicingTabComponent implements OnInit {
           this.toast.error('No se recibió la URL del PDF');
           return;
         }
-        window.open(response.signedUrl, '_blank', 'noopener,noreferrer');
+        openInvoicePdfViewer(
+          this.dialog,
+          response.signedUrl,
+          invoice.folio || this.order.folio || 'Factura',
+        );
       },
       error: (error) => {
         this.previewingPdfId.set(null);

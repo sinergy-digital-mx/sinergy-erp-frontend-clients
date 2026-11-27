@@ -32,6 +32,7 @@ import {
   SalesOrderPaymentDisplayLine,
 } from '../../models/sales-order-payment.model';
 import { formatPosUser } from '../../utils/pos-user-display.util';
+import { openInvoicePdfViewer } from '../../../accounting/components/invoice-pdf-viewer-dialog/invoice-pdf-viewer-dialog.component';
 import { resolveSalesOrderCustomerName, resolveSalesOrderCustomerId } from '../../utils/customer-display.util';
 import {
   getSalesOrderDocumentChipLabel,
@@ -1296,7 +1297,7 @@ export class SalesOrderDetailDialogComponent {
           this.toast.error('No se recibió la URL del PDF');
           return;
         }
-        window.open(response.signedUrl, '_blank', 'noopener,noreferrer');
+        openInvoicePdfViewer(this.dialog, response.signedUrl, 'Complemento de pago');
       },
       error: (error) => {
         this.openingPaymentComplementPdf.set(false);
@@ -1537,11 +1538,15 @@ export class SalesOrderDetailDialogComponent {
   }
 
   openPaymentDocument(doc: SalesOrderPaymentDocument): void {
-    if (doc.url) {
-      window.open(doc.url, '_blank');
+    if (!doc.url) {
+      this.toast.info('El comprobante no tiene URL disponible');
       return;
     }
-    this.toast.info('El comprobante no tiene URL disponible');
+    if (this.canPreviewFile(doc.file_name)) {
+      openInvoicePdfViewer(this.dialog, doc.url, doc.file_name || 'Comprobante');
+      return;
+    }
+    window.open(doc.url, '_blank', 'noopener,noreferrer');
   }
 
   onPaymentDocumentSelected(payment: SalesOrderPayment, event: Event): void {
@@ -1957,12 +1962,7 @@ export class SalesOrderDetailDialogComponent {
       next: (blob) => {
         this.downloadingTicketPdf.set(false);
         this.cdr.detectChanges();
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `TICKET-${folio}.pdf`;
-        link.click();
-        URL.revokeObjectURL(url);
+        openInvoicePdfViewer(this.dialog, URL.createObjectURL(blob), `TICKET-${folio}`);
         if (!this.hasTicketDocument()) {
           this.loadOrder();
         }
@@ -2100,10 +2100,33 @@ export class SalesOrderDetailDialogComponent {
     return formatApiDate(dateString, 'month-day');
   }
 
+  previewDocument(doc: SalesOrderDocument): void {
+    const url = doc.path?.trim();
+    if (!url) return;
+    openInvoicePdfViewer(this.dialog, url, doc.document_name || 'Documento');
+  }
+
   downloadDocument(doc: SalesOrderDocument): void {
-    if (doc.path) {
-      window.open(doc.path, '_blank');
-    }
+    const url = doc.path?.trim();
+    if (!url) return;
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    if (doc.document_name) link.download = doc.document_name;
+    link.click();
+  }
+
+  canPreviewDocument(doc: { document_name?: string | null; path?: string | null }): boolean {
+    const named = (doc.document_name || '').trim();
+    const file = named || (doc.path || '').split('?')[0].split('/').pop() || '';
+    return this.canPreviewFile(file);
+  }
+
+  private canPreviewFile(name?: string | null): boolean {
+    const value = (name || '').trim().toLowerCase();
+    if (!value || !value.includes('.')) return true;
+    return /\.(pdf|png|jpe?g|webp|gif)$/.test(value);
   }
 
   isTicketDocument(doc: SalesOrderDocument): boolean {

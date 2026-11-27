@@ -301,6 +301,7 @@ main,
 
 .cdk-overlay-pane.invoice-pdf-dialog-panel,
 .mat-mdc-dialog-panel.invoice-pdf-dialog-panel {
+  z-index: 2;
   width: min(1040px, 96vw) !important;
   max-width: 96vw !important;
   height: 92vh !important;

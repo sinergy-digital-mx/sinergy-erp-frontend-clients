@@ -1,7 +1,8 @@
 import { Component, Inject, signal, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { openInvoicePdfViewer } from '../../../accounting/components/invoice-pdf-viewer-dialog/invoice-pdf-viewer-dialog.component';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatAutocompleteModule, MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { Router } from '@angular/router';
@@ -105,7 +106,8 @@ export class ContractDetailModalComponent implements OnInit {
     private fb: FormBuilder,
     private cdr: ChangeDetectorRef,
     private leadService: LeadService,
-    private fiscalConfigService: FiscalConfigurationService
+    private fiscalConfigService: FiscalConfigurationService,
+    private dialog: MatDialog,
   ) {
     this.form = this.fb.group({
       contract_date: [this.data.contract.contract_date, Validators.required],
@@ -424,17 +426,7 @@ export class ContractDetailModalComponent implements OnInit {
   downloadStatement(): void {
     this.contractService.getContractStatement(this.data.contract.id).subscribe({
       next: (blob: Blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `estado-cuenta-${this.data.contract.id}.pdf`;
-        link.click();
-        window.URL.revokeObjectURL(url);
-        this.interceptorService.openSnackbar({
-          type: 'success',
-          title: 'Éxito',
-          message: 'Estado de cuenta descargado correctamente'
-        });
+        openInvoicePdfViewer(this.dialog, window.URL.createObjectURL(blob), 'Estado de cuenta');
       },
       error: (err) => {
         console.error('Error downloading statement:', err);

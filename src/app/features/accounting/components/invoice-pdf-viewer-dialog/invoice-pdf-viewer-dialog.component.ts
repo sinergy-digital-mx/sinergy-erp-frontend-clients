@@ -7,7 +7,7 @@ export interface InvoicePdfViewerData {
   title?: string;
 }
 
-/** Muestra el PDF de una factura sin salir de Caja y cuentas. */
+/** Muestra un PDF dentro del sistema, encima del detalle que esté abierto. */
 export function openInvoicePdfViewer(dialog: MatDialog, url: string, title?: string): void {
   dialog.open(InvoicePdfViewerDialogComponent, {
     width: 'min(1040px, 96vw)',
@@ -31,7 +31,8 @@ export class InvoicePdfViewerDialogComponent {
   private readonly data = inject<InvoicePdfViewerData>(MAT_DIALOG_DATA);
   private readonly sanitizer = inject(DomSanitizer);
 
-  readonly title = this.data.title?.trim() || 'Factura';
+  readonly title = this.data.title?.trim() || 'PDF';
+  readonly fileUrl = this.data.url;
   readonly pdfUrl: SafeResourceUrl = this.sanitizer.bypassSecurityTrustResourceUrl(this.data.url);
 
   close(): void {

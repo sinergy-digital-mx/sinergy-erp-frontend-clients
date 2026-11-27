@@ -1235,6 +1235,15 @@
     transition: all 0.2s;
     font-size: 0.9rem;
 
+    &.preview-btn {
+      background: #dcfce7;
+      color: #166534;
+
+      &:hover {
+        background: #bbf7d0;
+      }
+    }
+
     &.download-btn {
       background: #dbeafe;
       color: #1e40af;

@@ -2,6 +2,8 @@ import { Component, HostListener, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
+import { openInvoicePdfViewer } from '../../../accounting/components/invoice-pdf-viewer-dialog/invoice-pdf-viewer-dialog.component';
 import { LucideAngularModule, ArrowLeft, X } from 'lucide-angular';
 import { firstValueFrom, Observable } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
@@ -52,6 +54,7 @@ export class ServiceSubscriptionDetailComponent {
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
   private readonly auth = inject(AuthService);
+  private readonly dialog = inject(MatDialog);
 
   readonly ArrowLeft = ArrowLeft;
   readonly X = X;
@@ -275,14 +278,7 @@ export class ServiceSubscriptionDetailComponent {
       next: (blob) => {
         this.busy.set(false);
         const url = URL.createObjectURL(blob);
-        const opened = window.open(url, '_blank');
-        if (!opened) {
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `resumen-${detail.title}.pdf`;
-          link.click();
-        }
-        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        openInvoicePdfViewer(this.dialog, url, detail.title || 'Resumen');
       },
       error: (error) => {
         this.busy.set(false);

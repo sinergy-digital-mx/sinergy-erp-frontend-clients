@@ -1232,7 +1232,16 @@
                                 }
                               </button>
                             } @else {
-                              <button class="action-btn download-btn" (click)="downloadDocument(doc)" title="Descargar">
+                              @if (canPreviewDocument(doc)) {
+                                <button
+                                  class="action-btn preview-btn"
+                                  type="button"
+                                  (click)="previewDocument(doc)"
+                                  title="Ver PDF">
+                                  <i class="fi fi-rr-eye"></i>
+                                </button>
+                              }
+                              <button class="action-btn download-btn" type="button" (click)="downloadDocument(doc)" title="Descargar">
                                 <i class="fi fi-rr-download"></i>
                               </button>
                             }

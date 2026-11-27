@@ -2,10 +2,12 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
+  EventEmitter,
   Input,
   NgZone,
   OnChanges,
   OnDestroy,
+  Output,
   SimpleChanges,
   ViewChild,
   signal,
@@ -13,6 +15,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import {
+  GoogleGeocoder,
   GoogleMap,
   GoogleMapsLoaderService,
   GoogleMapsModules,
@@ -23,6 +26,7 @@ import {
   ShippingPreviewOrder,
   ShippingRoutePoint,
   ShippingStop,
+  ShippingTransfer,
 } from '../../models/shipping.model';
 import { truckFacesLeft, truckMarkerColor, truckMarkerUrl } from '../../utils/truck-marker';
 
@@ -39,11 +43,13 @@ export interface ShippingMapVehicle {
 }
 
 export interface ShippingMapPoint {
+  id: string;
   lat: number;
   lng: number;
   label: string;
-  kind: 'origin' | 'stop';
+  kind: 'origin' | 'stop' | 'transfer';
   seq: string;
+  address?: string;
 }
 
 type MapOverlay = { setMap: (map: GoogleMap | null) => void };
@@ -61,7 +67,10 @@ export class ShippingMapComponent implements OnChanges, AfterViewInit, OnDestroy
   @Input() stops: ShippingStop[] = [];
   @Input() previewOrders: ShippingPreviewOrder[] = [];
   @Input() routePoints: ShippingRoutePoint[] = [];
+  @Input() transfers: ShippingTransfer[] = [];
   @Input() vehicle: ShippingMapVehicle | null = null;
+
+  @Output() focusFailed = new EventEmitter<string>();
 
   @ViewChild('mapHost') mapHost?: ElementRef<HTMLDivElement>;
 
@@ -73,10 +82,18 @@ export class ShippingMapComponent implements OnChanges, AfterViewInit, OnDestroy
   private maps: GoogleMapsModules | null = null;
   private map: GoogleMap | null = null;
   private markers: GoogleMarker[] = [];
+  private markerById = new Map<string, GoogleMarker>();
   private routeOverlays: MapOverlay[] = [];
-  private infoWindow: { close: () => void } | null = null;
+  private infoWindow: { close: () => void; setContent?: (html: string) => void; open?: (opts: unknown) => void } | null = null;
   private initToken = 0;
   private renderTimer: ReturnType<typeof setTimeout> | null = null;
+  private renderAttempts = 0;
+  private destroyed = false;
+  private pendingFocusId: string | null = null;
+  private geocoded = new Map<string, { lat: number; lng: number } | null>();
+  private geocodeInFlight = new Set<string>();
+  private geocodeQueue: Array<{ key: string; address: string }> = [];
+  private geocoding = false;
 
   constructor(
     private mapsLoader: GoogleMapsLoaderService,
@@ -90,9 +107,10 @@ export class ShippingMapComponent implements OnChanges, AfterViewInit, OnDestroy
   ngOnChanges(_changes: SimpleChanges): void {
     this.points = this.collectPoints();
     this.empty = this.points.length === 0 && !this.hasVehicle();
+    if (this.geocodeQueue.length) void this.geocodeQueued();
     if (this.active && !this.empty) {
       this.scheduleRender();
-    } else {
+    } else if (!this.active || (this.empty && !this.geocodeQueue.length && !this.geocoding)) {
       this.cancelScheduledRender();
       this.destroyMap();
       this.mapLoading.set(false);
@@ -101,9 +119,22 @@ export class ShippingMapComponent implements OnChanges, AfterViewInit, OnDestroy
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
     this.cancelScheduledRender();
     this.initToken += 1;
     this.destroyMap();
+  }
+
+  /** Centra el mapa en origen, parada o transferencia. */
+  focus(id: string): boolean {
+    if (this.applyFocus(id)) {
+      this.pendingFocusId = null;
+      return true;
+    }
+    if (!this.canResolve(id)) return false;
+    this.pendingFocusId = id;
+    if (this.geocodeQueue.length) void this.geocodeQueued();
+    return true;
   }
 
   private scheduleRender(): void {
@@ -123,15 +154,23 @@ export class ShippingMapComponent implements OnChanges, AfterViewInit, OnDestroy
   }
 
   private collectPoints(): ShippingMapPoint[] {
+    const points = this.collectBasePoints();
+    this.appendTransferPoints(points);
+    return points;
+  }
+
+  private collectBasePoints(): ShippingMapPoint[] {
     if (this.routePoints?.length) {
       return this.routePoints
         .filter((p) => this.isValidCoord(p.latitude, p.longitude))
         .map((p, idx) => ({
+          id: p.kind === 'origin' ? 'origin' : p.sales_order_id ? `stop:${p.sales_order_id}` : `route:${idx}`,
           lat: Number(p.latitude),
           lng: Number(p.longitude),
           label: p.name || (p.kind === 'origin' ? 'Origen' : 'Parada'),
           kind: p.kind,
           seq: p.label || (p.kind === 'origin' ? '0' : String(idx)),
+          address: p.address_summary || undefined,
         }));
     }
 
@@ -140,11 +179,13 @@ export class ShippingMapComponent implements OnChanges, AfterViewInit, OnDestroy
     const oLng = this.origin?.longitude;
     if (this.isValidCoord(oLat, oLng)) {
       points.push({
+        id: 'origin',
         lat: Number(oLat),
         lng: Number(oLng),
         label: this.origin?.name || this.origin?.warehouse_name || 'Origen',
         kind: 'origin',
         seq: this.origin?.label || '0',
+        address: this.origin?.address_summary,
       });
     }
 
@@ -155,11 +196,13 @@ export class ShippingMapComponent implements OnChanges, AfterViewInit, OnDestroy
         const lng = stop.delivery_longitude ?? stop.longitude;
         if (this.isValidCoord(lat, lng)) {
           points.push({
+            id: `stop:${stop.sales_order_id}`,
             lat: Number(lat),
             lng: Number(lng),
             label: stop.customer_name || stop.folio || 'Parada',
             kind: 'stop',
             seq: stop.label || String(idx + 1),
+            address: stop.address_summary,
           });
         }
       });
@@ -171,15 +214,68 @@ export class ShippingMapComponent implements OnChanges, AfterViewInit, OnDestroy
       const lng = stop.delivery_longitude;
       if (this.isValidCoord(lat, lng)) {
         points.push({
+          id: `stop:${stop.sales_order_id}`,
           lat: Number(lat),
           lng: Number(lng),
           label: stop.customer_name || stop.order_number || 'Parada',
           kind: 'stop',
           seq: String(stop.stop_sequence ?? idx + 1),
+          address: stop.address_summary,
         });
       }
     });
     return points;
+  }
+
+  private appendTransferPoints(points: ShippingMapPoint[]): void {
+    const lastSeq = points.reduce((max, point) => {
+      const seq = Number(point.seq);
+      return Number.isFinite(seq) ? Math.max(max, seq) : max;
+    }, 0);
+    (this.transfers ?? []).forEach((transfer, idx) => {
+      const id = `transfer:${transfer.id}`;
+      if (points.some((point) => point.id === id)) return;
+      const address = transfer.destination_address?.trim() || '';
+      const resolved = this.resolveTransferCoords(transfer, address);
+      if (!resolved) return;
+      const branch = transfer.destination_branch_name?.trim();
+      const warehouse = transfer.destination_warehouse_name?.trim();
+      const place = [branch, warehouse].filter(Boolean).join(' · ');
+      points.push({
+        id,
+        lat: resolved.lat,
+        lng: resolved.lng,
+        label: place ? `${transfer.folio} · ${place}` : transfer.folio || 'Transferencia',
+        kind: 'transfer',
+        seq: String(lastSeq + idx + 1),
+        address: address || undefined,
+      });
+    });
+  }
+
+  private resolveTransferCoords(
+    transfer: ShippingTransfer,
+    address: string
+  ): { lat: number; lng: number } | null {
+    if (this.isValidCoord(transfer.destination_latitude, transfer.destination_longitude)) {
+      return {
+        lat: Number(transfer.destination_latitude),
+        lng: Number(transfer.destination_longitude),
+      };
+    }
+    if (!address) return null;
+    const key = address.toLowerCase();
+    if (this.geocoded.has(key)) return this.geocoded.get(key) ?? null;
+    this.queueGeocode(address);
+    return null;
+  }
+
+  private queueGeocode(address: string): void {
+    const trimmed = address.trim();
+    const key = trimmed.toLowerCase();
+    if (!key || this.geocoded.has(key) || this.geocodeInFlight.has(key)) return;
+    this.geocodeInFlight.add(key);
+    this.geocodeQueue.push({ key, address: trimmed });
   }
 
   private hasVehicle(): boolean {
@@ -196,9 +292,14 @@ export class ShippingMapComponent implements OnChanges, AfterViewInit, OnDestroy
     const token = ++this.initToken;
     const el = this.mapHost?.nativeElement;
     if (!el || this.empty || !this.active) {
+      if (!el && !this.empty && this.active && this.renderAttempts < 8) {
+        this.renderAttempts += 1;
+        this.scheduleRender();
+      }
       this.mapLoading.set(false);
       return;
     }
+    this.renderAttempts = 0;
 
     this.mapLoading.set(true);
     this.mapError.set(null);
@@ -242,32 +343,40 @@ export class ShippingMapComponent implements OnChanges, AfterViewInit, OnDestroy
           icon: {
             path: gmaps.SymbolPath.CIRCLE,
             scale: 14,
-            fillColor: '#16a34a',
+            fillColor: p.kind === 'transfer' ? '#0f766e' : '#16a34a',
             fillOpacity: 1,
             strokeColor: '#ffffff',
             strokeWeight: 2,
           },
         });
+        marker.addListener('click', () => this.openPointInfo(p, marker));
         this.markers.push(marker);
+        this.markerById.set(p.id, marker);
       });
       this.addVehicleMarker(gmaps, bounds);
 
       const plotted = this.points.length + (this.hasVehicle() ? 1 : 0);
-      if (plotted <= 1) {
+      const focusing =
+        !!this.pendingFocusId && this.points.some((point) => point.id === this.pendingFocusId);
+      if (!focusing && plotted <= 1) {
         const only = this.hasVehicle()
           ? { lat: Number(this.vehicle!.lat), lng: Number(this.vehicle!.lng) }
           : { lat: this.points[0].lat, lng: this.points[0].lng };
         this.map!.setCenter(only);
         this.map!.setZoom(13);
-      } else {
+      } else if (!focusing) {
         if (this.points.length > 1) {
           await this.drawDrivingRoute(gmaps, token);
           if (token !== this.initToken) return;
         }
         this.map!.fitBounds?.(bounds, 48);
+      } else if (this.points.length > 1) {
+        await this.drawDrivingRoute(gmaps, token);
+        if (token !== this.initToken) return;
       }
 
       if (token !== this.initToken) return;
+      this.settleFocus();
 
       this.mapLoading.set(false);
       setTimeout(() => {
@@ -490,9 +599,128 @@ export class ShippingMapComponent implements OnChanges, AfterViewInit, OnDestroy
     return String(point.kind === 'origin' ? 0 : idx);
   }
 
+  private canResolve(id: string): boolean {
+    if (this.points.some((point) => point.id === id)) return true;
+    if (id === 'origin') return this.isValidCoord(this.origin?.latitude, this.origin?.longitude);
+    if (id.startsWith('stop:')) {
+      const stopId = id.slice('stop:'.length);
+      const stop = (this.stops ?? []).find((item) => item.sales_order_id === stopId);
+      if (stop) return this.isValidCoord(stop.delivery_latitude, stop.delivery_longitude);
+      const preview = (this.previewOrders ?? []).find((item) => item.sales_order_id === stopId);
+      if (!preview) return false;
+      return this.isValidCoord(
+        preview.delivery_latitude ?? preview.latitude,
+        preview.delivery_longitude ?? preview.longitude
+      );
+    }
+    if (id.startsWith('transfer:')) {
+      const transferId = id.slice('transfer:'.length);
+      const transfer = (this.transfers ?? []).find((item) => item.id === transferId);
+      if (!transfer) return false;
+      if (this.isValidCoord(transfer.destination_latitude, transfer.destination_longitude)) return true;
+      const address = transfer.destination_address?.trim();
+      if (!address) return false;
+      return this.geocoded.get(address.toLowerCase()) !== null;
+    }
+    return false;
+  }
+
+  private applyFocus(id: string): boolean {
+    const point = this.points.find((item) => item.id === id);
+    const marker = this.markerById.get(id);
+    if (!point || !marker || !this.map) return false;
+    this.map.panTo({ lat: point.lat, lng: point.lng });
+    this.map.setZoom(15);
+    this.openPointInfo(point, marker);
+    return true;
+  }
+
+  private settleFocus(): void {
+    const id = this.pendingFocusId;
+    if (!id) return;
+    if (this.applyFocus(id)) {
+      this.pendingFocusId = null;
+      return;
+    }
+    if (this.geocoding || this.geocodeQueue.length) return;
+    this.pendingFocusId = null;
+    this.focusFailed.emit(id);
+  }
+
+  private openPointInfo(point: ShippingMapPoint, marker: GoogleMarker): void {
+    const gmaps = (window as any).google?.maps;
+    if (!gmaps || typeof gmaps.InfoWindow !== 'function' || !this.map) return;
+    const address = point.address
+      ? `<div>${this.escapeHtml(point.address)}</div>`
+      : '';
+    const content = `<div style="font-size:13px;line-height:1.4"><strong>${this.escapeHtml(point.label)}</strong>${address}</div>`;
+    if (!this.infoWindow) {
+      this.infoWindow = new gmaps.InfoWindow();
+    }
+    this.infoWindow.setContent?.(content);
+    this.infoWindow.open?.({ map: this.map, anchor: marker });
+  }
+
+  private async geocodeQueued(): Promise<void> {
+    if (this.geocoding || !this.geocodeQueue.length || !this.active || this.destroyed) return;
+    this.geocoding = true;
+    const batch = this.geocodeQueue.splice(0);
+    try {
+      this.maps = this.maps ?? (await this.mapsLoader.load());
+      if (this.destroyed) return;
+      const geocoder: GoogleGeocoder = new this.maps.Geocoder();
+      let found = false;
+      for (const item of batch) {
+        const hit = await this.lookupAddress(geocoder, item.address);
+        if (this.destroyed) return;
+        this.geocoded.set(item.key, hit);
+        this.geocodeInFlight.delete(item.key);
+        if (hit) found = true;
+      }
+      if (found) {
+        this.points = this.collectPoints();
+        this.empty = this.points.length === 0 && !this.hasVehicle();
+        if (this.active && !this.empty) this.scheduleRender();
+        else this.settleFocus();
+      } else {
+        this.settleFocus();
+      }
+    } catch {
+      for (const item of batch) {
+        if (!this.geocoded.has(item.key)) this.geocoded.set(item.key, null);
+        this.geocodeInFlight.delete(item.key);
+      }
+      this.settleFocus();
+    } finally {
+      this.geocoding = false;
+      if (!this.destroyed && this.geocodeQueue.length && this.active) void this.geocodeQueued();
+    }
+  }
+
+  private lookupAddress(
+    geocoder: GoogleGeocoder,
+    address: string
+  ): Promise<{ lat: number; lng: number } | null> {
+    return new Promise((resolve) => {
+      geocoder.geocode({ address }, (results, status) => {
+        this.ngZone.run(() => {
+          if (status !== 'OK' || !results?.[0]) {
+            resolve(null);
+            return;
+          }
+          const location = results[0].geometry.location;
+          const lat = location.lat();
+          const lng = location.lng();
+          resolve(this.isValidCoord(lat, lng) ? { lat, lng } : null);
+        });
+      });
+    });
+  }
+
   private clearOverlays(): void {
     this.infoWindow?.close();
     this.infoWindow = null;
+    this.markerById.clear();
     for (const m of this.markers) {
       m.setMap(null);
       this.maps?.event.clearInstanceListeners(m);

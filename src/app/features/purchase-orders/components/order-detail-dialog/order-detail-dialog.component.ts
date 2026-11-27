@@ -11,6 +11,7 @@ import { Document, DocumentLanguage, DocumentType, PurchaseOrder } from '../../m
 import { purchaseOrderReceivedLots } from '../../models/purchase-order-lot.model';
 import { LineItem } from '../../models/line-item.model';
 import { PurchaseOrderService } from '../../services/purchase-order.service';
+import { openInvoicePdfViewer } from '../../../accounting/components/invoice-pdf-viewer-dialog/invoice-pdf-viewer-dialog.component';
 import {
   PurchaseOrderNotesDialogComponent,
   PurchaseOrderNotesDialogResult,
@@ -1207,10 +1208,27 @@ export class OrderDetailDialogComponent {
     return formatted === '—' ? '-' : formatted;
   }
 
-  downloadDocument(doc: any): void {
-    if (doc.path) {
-      window.open(doc.path, '_blank');
-    }
+  canPreviewDocument(doc: { path?: string; document_name?: string }): boolean {
+    const named = (doc.document_name || '').trim();
+    const file = (named || (doc.path || '').split('?')[0].split('/').pop() || '').toLowerCase();
+    return !file || !file.includes('.') || /\.(pdf|png|jpe?g|webp|gif)$/.test(file);
+  }
+
+  previewDocument(doc: { path?: string; document_name?: string }): void {
+    const url = doc.path?.trim();
+    if (!url) return;
+    openInvoicePdfViewer(this.dialog, url, doc.document_name || 'Documento');
+  }
+
+  downloadDocument(doc: { path?: string; document_name?: string }): void {
+    const url = doc.path?.trim();
+    if (!url) return;
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    if (doc.document_name) link.download = doc.document_name;
+    link.click();
   }
 
   deleteDocument(doc: Document): void {

@@ -67,12 +67,30 @@ export interface ShippingOrigin {
   address_summary?: string;
 }
 
+export interface ShippingTransfer {
+  id: string;
+  folio: string;
+  status?: string | null;
+  total_quantity?: string | number | null;
+  source_warehouse_name?: string | null;
+  destination_warehouse_name?: string | null;
+  source_branch_name?: string | null;
+  destination_branch_name?: string | null;
+  source_address?: string | null;
+  destination_address?: string | null;
+  source_latitude?: number | null;
+  source_longitude?: number | null;
+  destination_latitude?: number | null;
+  destination_longitude?: number | null;
+}
+
 export interface ShippingRoutePoint {
   label?: string;
   kind: 'origin' | 'stop';
   latitude: number;
   longitude: number;
   name?: string;
+  address_summary?: string;
   sales_order_id?: string;
   stop_sequence?: number;
 }
@@ -136,16 +154,7 @@ export interface Shipping {
   truck_carta_porte_ready?: boolean;
   truck_carta_porte_missing?: string[];
   cargo_kind?: 'order_delivery' | 'inventory_transfer' | 'mixed' | string;
-  transfers?: Array<{
-    id: string;
-    folio: string;
-    status?: string | null;
-    total_quantity?: string | number | null;
-    source_warehouse_name?: string | null;
-    destination_warehouse_name?: string | null;
-    source_branch_name?: string | null;
-    destination_branch_name?: string | null;
-  }>;
+  transfers?: ShippingTransfer[];
   stops?: ShippingStop[];
   origin?: ShippingOrigin;
   origin_missing_location?: boolean;
@@ -254,6 +263,25 @@ function toNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null;
   const num = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(num) ? num : null;
+}
+
+function normalizeTransfer(raw: any): ShippingTransfer {
+  return {
+    id: String(raw?.id ?? ''),
+    folio: raw?.folio ?? '',
+    status: raw?.status ?? null,
+    total_quantity: raw?.total_quantity ?? null,
+    source_warehouse_name: raw?.source_warehouse_name ?? null,
+    destination_warehouse_name: raw?.destination_warehouse_name ?? null,
+    source_branch_name: raw?.source_branch_name ?? null,
+    destination_branch_name: raw?.destination_branch_name ?? null,
+    source_address: raw?.source_address ?? null,
+    destination_address: raw?.destination_address ?? null,
+    source_latitude: toNumber(raw?.source_latitude),
+    source_longitude: toNumber(raw?.source_longitude),
+    destination_latitude: toNumber(raw?.destination_latitude),
+    destination_longitude: toNumber(raw?.destination_longitude),
+  };
 }
 
 /** Aplana relaciones anidadas del GET detalle / listado. */
@@ -414,6 +442,9 @@ export function normalizeShipping(raw: any): Shipping {
     origin_warehouse_name:
       raw.origin_warehouse_name || warehouse?.name || origin?.name || origin?.warehouse_name,
     distance_km: toNumber(raw.distance_km),
+    transfers: Array.isArray(raw.transfers)
+      ? raw.transfers.map((transfer: any) => normalizeTransfer(transfer))
+      : raw.transfers,
     origin: origin
       ? {
           ...origin,

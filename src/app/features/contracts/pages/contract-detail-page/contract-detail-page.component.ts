@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatAutocompleteModule, MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { MatDialog } from '@angular/material/dialog';
+import { openInvoicePdfViewer } from '../../../accounting/components/invoice-pdf-viewer-dialog/invoice-pdf-viewer-dialog.component';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { LucideAngularModule, ArrowLeft, Info } from 'lucide-angular';
@@ -351,12 +352,7 @@ export class ContractDetailPageComponent implements OnInit {
     if (!current) return;
     this.contractService.getContractStatement(current.id).subscribe({
       next: (blob: Blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `estado-cuenta-${current.id}.pdf`;
-        link.click();
-        window.URL.revokeObjectURL(url);
+        openInvoicePdfViewer(this.dialog, window.URL.createObjectURL(blob), 'Estado de cuenta');
       },
       error: () => {
         this.interceptorService.openSnackbar({

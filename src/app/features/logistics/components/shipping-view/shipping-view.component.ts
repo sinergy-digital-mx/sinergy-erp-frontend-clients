@@ -6,15 +6,17 @@ import {
   OnDestroy,
   Output,
   SimpleChanges,
+  ViewChild,
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
+import { openInvoicePdfViewer } from '../../../accounting/components/invoice-pdf-viewer-dialog/invoice-pdf-viewer-dialog.component';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
-import { Check, CircleAlert, LucideAngularModule, MapPin, Plus, RefreshCw, X } from 'lucide-angular';
+import { Check, CircleAlert, Locate, LucideAngularModule, MapPin, Plus, RefreshCw, X } from 'lucide-angular';
 import { CustomSnackbarComponent } from '../../../../core/components/custom-snackbar/custom-snackbar.component';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { HasPermissionDirective } from '../../../../core/directives/has-permission.directive';
@@ -37,6 +39,7 @@ import {
   Shipping,
   ShippingStatus,
   ShippingStop,
+  ShippingTransfer,
   countMissingGps,
   enrichShippingStop,
   getNextShippingStatuses,
@@ -76,6 +79,7 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
   @Output() closed = new EventEmitter<void>();
 
   readonly MapPin = MapPin;
+  readonly Locate = Locate;
   readonly Plus = Plus;
   readonly RefreshCw = RefreshCw;
   readonly X = X;
@@ -96,6 +100,9 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
   addressUpdating = signal(false);
   errorMessage = signal<string | null>(null);
   vehicle = signal<ShippingMapVehicle | null>(null);
+  focusedPointId = signal<string | null>(null);
+
+  @ViewChild(ShippingMapComponent) private routeMap?: ShippingMapComponent;
 
   private destroy$ = new Subject<void>();
   private loadedForId: string | null = null;
@@ -502,6 +509,45 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
     return stop.folio || stop.order_number || stop.sales_order_id?.slice(0, 8) || 'OV';
   }
 
+  locateTitle(canLocate: boolean): string {
+    return canLocate ? 'Ubicar en el mapa' : 'Sin ubicación para mostrar en el mapa';
+  }
+
+  locate(pointId: string): void {
+    this.focusedPointId.set(pointId);
+    if (this.routeMap?.focus(pointId)) return;
+    this.snackBar.openFromComponent(CustomSnackbarComponent, {
+      data: { message: 'Esa parada no tiene ubicación en el mapa', type: 'error' },
+      duration: 4000,
+    });
+  }
+
+  onLocateFailed(): void {
+    this.snackBar.openFromComponent(CustomSnackbarComponent, {
+      data: { message: 'No se encontró esa dirección en el mapa', type: 'error' },
+      duration: 4000,
+    });
+  }
+
+  transferSequence(index: number): number {
+    const last = this.stops().reduce((max, stop, idx) => {
+      const seq = Number(stop.stop_sequence ?? idx + 1);
+      return Number.isFinite(seq) ? Math.max(max, seq) : max;
+    }, 0);
+    return last + index + 1;
+  }
+
+  transferHasCoords(transfer: ShippingTransfer): boolean {
+    return (
+      typeof transfer.destination_latitude === 'number' &&
+      typeof transfer.destination_longitude === 'number'
+    );
+  }
+
+  transferCanLocate(transfer: ShippingTransfer): boolean {
+    return this.transferHasCoords(transfer) || !!transfer.destination_address?.trim();
+  }
+
   onStatusSelect(status: string): void {
     if (!status || !this.shipping()) return;
     const confirmRef = this.dialog.open(ConfirmDialogComponent, {
@@ -851,12 +897,11 @@ export class ShippingViewComponent implements OnChanges, OnDestroy {
     if (!current?.id) return;
     this.shippingService.downloadCartaPortePdf(current.id).subscribe({
       next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `carta-porte-${(current.carta_porte_uuid || current.id).slice(0, 8)}.pdf`;
-        link.click();
-        URL.revokeObjectURL(url);
+        openInvoicePdfViewer(
+          this.dialog,
+          URL.createObjectURL(blob),
+          `Carta porte ${(current.carta_porte_uuid || current.id).slice(0, 8)}`,
+        );
       },
       error: () => this.toast('No se pudo descargar el PDF', 'error'),
     });

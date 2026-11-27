@@ -2,7 +2,8 @@ import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { openInvoicePdfViewer } from '../../../accounting/components/invoice-pdf-viewer-dialog/invoice-pdf-viewer-dialog.component';
 import { LucideAngularModule, FileText, Printer, Receipt, X } from 'lucide-angular';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { PosSaleReceipt, normalizePosSaleReceipt } from '../../models/pos-receipt.model';
@@ -49,6 +50,7 @@ interface ReceiptPreviewLine extends EscPosPreviewLine {
 })
 export class PosCollectPrintDialogComponent implements OnInit, OnDestroy {
   private readonly dialogRef = inject(MatDialogRef<PosCollectPrintDialogComponent>);
+  private readonly dialog = inject(MatDialog);
   readonly data = inject<PosCollectPrintDialogData>(MAT_DIALOG_DATA);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly posService = inject(POSService);
@@ -227,7 +229,7 @@ export class PosCollectPrintDialogComponent implements OnInit, OnDestroy {
   openPdf(): void {
     const url = this.pdfUrl();
     if (!url) return;
-    window.open(url, '_blank', 'noopener,noreferrer');
+    openInvoicePdfViewer(this.dialog, url, this.data.folio || 'Factura');
   }
 
   async loadPrinters(): Promise<void> {

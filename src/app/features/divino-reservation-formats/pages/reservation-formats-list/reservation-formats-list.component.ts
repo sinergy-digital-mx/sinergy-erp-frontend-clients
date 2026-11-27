@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
+import { openInvoicePdfViewer } from '../../../accounting/components/invoice-pdf-viewer-dialog/invoice-pdf-viewer-dialog.component';
 import {
   Download,
   FileText,
@@ -246,8 +247,7 @@ export class ReservationFormatsListComponent implements OnDestroy {
       next: (blob) => {
         this.downloadingId.set(null);
         const url = URL.createObjectURL(blob);
-        window.open(url, '_blank');
-        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        openInvoicePdfViewer(this.dialog, url, format.folio || 'Formato');
       },
       error: () => {
         this.downloadingId.set(null);

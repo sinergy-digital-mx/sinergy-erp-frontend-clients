@@ -1,7 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { openInvoicePdfViewer } from '../../../accounting/components/invoice-pdf-viewer-dialog/invoice-pdf-viewer-dialog.component';
 import { LucideAngularModule, Eye, Printer, X } from 'lucide-angular';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { PosSaleReceipt, normalizePosSaleReceipt } from '../../models/pos-receipt.model';
@@ -38,6 +39,7 @@ export interface PosReceiptPreviewDialogData {
 })
 export class PosReceiptPreviewDialogComponent implements OnInit {
   private readonly dialogRef = inject(MatDialogRef<PosReceiptPreviewDialogComponent>);
+  private readonly dialog = inject(MatDialog);
   readonly data = inject<PosReceiptPreviewDialogData>(MAT_DIALOG_DATA);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly posService = inject(POSService);
@@ -173,12 +175,7 @@ export class PosReceiptPreviewDialogComponent implements OnInit {
     this.salesOrderService.downloadTicketPdf(orderId).subscribe({
       next: (blob) => {
         this.downloadingPdf.set(false);
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `TICKET-${orderId}.pdf`;
-        link.click();
-        URL.revokeObjectURL(url);
+        openInvoicePdfViewer(this.dialog, URL.createObjectURL(blob), 'Ticket');
       },
       error: () => {
         this.downloadingPdf.set(false);

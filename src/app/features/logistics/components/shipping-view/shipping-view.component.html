@@ -284,7 +284,7 @@
       <aside class="sv__route">
         <div class="sv__section">
           <h4>Origen</h4>
-          <div class="stop" [class.stop--warn]="isOriginMissing()">
+          <div class="stop" [class.stop--warn]="isOriginMissing()" [class.stop--focus]="focusedPointId() === 'origin'">
             <div class="stop__seq" [class.stop__seq--warn]="isOriginMissing()">0</div>
             <div class="stop__body">
               <div class="stop__row">
@@ -293,6 +293,17 @@
                   @if (!isOriginMissing()) {
                     <span class="ok-pill">GPS OK</span>
                   }
+                  <span class="loc-tip">
+                    <button
+                      type="button"
+                      class="loc-edit-btn"
+                      [attr.aria-label]="locateTitle(!isOriginMissing())"
+                      [disabled]="isOriginMissing()"
+                      (click)="locate('origin')">
+                      <lucide-icon [img]="Locate" [size]="14" [strokeWidth]="2"></lucide-icon>
+                    </button>
+                    <span class="loc-tip__text">{{ locateTitle(!isOriginMissing()) }}</span>
+                  </span>
                   <button
                     type="button"
                     class="loc-edit-btn"
@@ -322,6 +333,7 @@
               class="stop"
               [class.stop--warn]="!stop.hasCoords"
               [class.stop--current]="isCurrentStop(stop)"
+              [class.stop--focus]="focusedPointId() === 'stop:' + stop.sales_order_id"
             >
               <div class="stop__seq" [class.stop__seq--warn]="!stop.hasCoords">
                 {{ stop.stop_sequence ?? $index + 1 }}
@@ -342,6 +354,17 @@
                     @if (isCurrentStop(stop)) {
                       <span class="chip">Esta OV</span>
                     }
+                    <span class="loc-tip">
+                      <button
+                        type="button"
+                        class="loc-edit-btn"
+                        [attr.aria-label]="locateTitle(!!stop.hasCoords)"
+                        [disabled]="!stop.hasCoords"
+                        (click)="locate('stop:' + stop.sales_order_id)">
+                        <lucide-icon [img]="Locate" [size]="14" [strokeWidth]="2"></lucide-icon>
+                      </button>
+                      <span class="loc-tip__text">{{ locateTitle(!!stop.hasCoords) }}</span>
+                    </span>
                   </div>
                 </div>
                 <p class="stop__name">{{ stop.customer_name || 'Cliente' }}</p>
@@ -373,15 +396,46 @@
           <div class="sv__section">
             <h4>Transferencias ({{ s.transfers.length }})</h4>
             @for (transfer of s.transfers; track transfer.id) {
-              <div class="stop">
-                <div class="stop__seq">{{ $index + 1 }}</div>
+              <div
+                class="stop"
+                [class.stop--warn]="!transferCanLocate(transfer)"
+                [class.stop--focus]="focusedPointId() === 'transfer:' + transfer.id"
+              >
+                <div class="stop__seq" [class.stop__seq--warn]="!transferCanLocate(transfer)">
+                  {{ transferSequence($index) }}
+                </div>
                 <div class="stop__body">
-                  <button type="button" class="stop__title stop__title-btn" (click)="openTransferDetail(transfer.id)">
-                    {{ transfer.folio }}
-                  </button>
-                  <p class="stop__name">{{ transfer.destination_warehouse_name || 'Destino' }}</p>
+                  <div class="stop__row">
+                    <button type="button" class="stop__title stop__title-btn" (click)="openTransferDetail(transfer.id)">
+                      {{ transfer.folio }}
+                    </button>
+                    <div class="stop__row-actions">
+                      @if (transferHasCoords(transfer)) {
+                        <span class="ok-pill">GPS OK</span>
+                      }
+                      <span class="loc-tip">
+                        <button
+                          type="button"
+                          class="loc-edit-btn"
+                          [attr.aria-label]="locateTitle(transferCanLocate(transfer))"
+                          [disabled]="!transferCanLocate(transfer)"
+                          (click)="locate('transfer:' + transfer.id)">
+                          <lucide-icon [img]="Locate" [size]="14" [strokeWidth]="2"></lucide-icon>
+                        </button>
+                        <span class="loc-tip__text">{{ locateTitle(transferCanLocate(transfer)) }}</span>
+                      </span>
+                    </div>
+                  </div>
+                  @if (transfer.destination_branch_name) {
+                    <p class="stop__name">Sucursal {{ transfer.destination_branch_name }}</p>
+                  }
+                  <p class="stop__name">Almacén {{ transfer.destination_warehouse_name || 'Sin almacén' }}</p>
+                  <p class="stop__addr stop__addr--wrap">{{ transfer.destination_address || 'Sin dirección del almacén' }}</p>
                   @if (transfer.total_quantity != null) {
-                    <p class="stop__addr">{{ transfer.total_quantity }}</p>
+                    <p class="stop__muted">Cantidad {{ transfer.total_quantity }}</p>
+                  }
+                  @if (!transferCanLocate(transfer)) {
+                    <p class="warn-text">Sin dirección ni coordenadas del almacén</p>
                   }
                 </div>
               </div>
@@ -416,7 +470,9 @@
           [active]="active"
           [origin]="s.origin || null"
           [stops]="stops()"
+          [transfers]="s.transfers || []"
           [vehicle]="vehicle()"
+          (focusFailed)="onLocateFailed()"
         ></app-shipping-map>
       </div>
     </div>

@@ -21,6 +21,7 @@ import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-
 import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { formatUnitAmount } from '../../../../core/utils/unit-money.util';
 import { QUOTATION_PERMISSIONS } from '../../config/permissions.config';
+import { openInvoicePdfViewer } from '../../../accounting/components/invoice-pdf-viewer-dialog/invoice-pdf-viewer-dialog.component';
 import { EditSalesOrderLineDialogComponent } from '../../../sales-orders/components/edit-sales-order-line-dialog/edit-sales-order-line-dialog.component';
 import { AddSalesOrderLineDialogComponent } from '../../../sales-orders/components/add-sales-order-line-dialog/add-sales-order-line-dialog.component';
 import { SalesOrderLineItem } from '../../../sales-orders/models/sales-order.model';
@@ -429,7 +430,7 @@ export class QuotationDetailDialogComponent implements OnInit {
           this.toast.error('No se recibió la URL del PDF');
           return;
         }
-        window.open(response.signedUrl, '_blank', 'noopener,noreferrer');
+        openInvoicePdfViewer(this.dialog, response.signedUrl, this.advanceFolioLabel() || 'Anticipo');
       },
       error: (err) => {
         this.openingAdvancePdf.set(false);
@@ -1020,11 +1021,12 @@ export class QuotationDetailDialogComponent implements OnInit {
 
   openPdf(): void {
     const doc = this.originalDocument();
-    if (doc?.path) {
-      window.open(doc.path, '_blank');
-    } else {
+    const url = doc?.path?.trim();
+    if (!url) {
       this.toast.info('El PDF aún se está generando. Recarga en unos segundos.');
+      return;
     }
+    openInvoicePdfViewer(this.dialog, url, doc?.document_name || this.header()?.folio || 'Cotización');
   }
 
   regeneratePDF(): void {
@@ -1069,7 +1071,26 @@ export class QuotationDetailDialogComponent implements OnInit {
     return formatApiDate(dateString, 'month-day');
   }
 
+  canPreviewDocument(doc: QuotationDocument): boolean {
+    const named = (doc.document_name || '').trim();
+    const file = (named || (doc.path || '').split('?')[0].split('/').pop() || '').toLowerCase();
+    return !file || !file.includes('.') || /\.(pdf|png|jpe?g|webp|gif)$/.test(file);
+  }
+
+  previewDocument(doc: QuotationDocument): void {
+    const url = doc.path?.trim();
+    if (!url) return;
+    openInvoicePdfViewer(this.dialog, url, doc.document_name || 'Documento');
+  }
+
   downloadDocument(doc: QuotationDocument): void {
-    if (doc.path) window.open(doc.path, '_blank');
+    const url = doc.path?.trim();
+    if (!url) return;
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    if (doc.document_name) link.download = doc.document_name;
+    link.click();
   }
 }

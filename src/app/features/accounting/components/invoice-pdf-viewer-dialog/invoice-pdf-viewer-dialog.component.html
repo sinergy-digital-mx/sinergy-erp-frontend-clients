@@ -1,9 +1,12 @@
 <div class="pdf-viewer">
   <header class="pdf-viewer__bar">
     <h2>{{ title }}</h2>
-    <button type="button" class="pdf-viewer__close" aria-label="Cerrar" (click)="close()">
-      <i class="fi fi-rr-cross-small" aria-hidden="true"></i>
-    </button>
+    <div class="pdf-viewer__actions">
+      <a class="pdf-viewer__download" [href]="fileUrl" target="_blank" rel="noopener noreferrer" download>Descargar</a>
+      <button type="button" class="pdf-viewer__close" aria-label="Cerrar" (click)="close()">
+        <i class="fi fi-rr-cross-small" aria-hidden="true"></i>
+      </button>
+    </div>
   </header>
   <iframe class="pdf-viewer__frame" [src]="pdfUrl" [title]="title"></iframe>
 </div>

@@ -2,6 +2,7 @@ import { Component, Inject, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { openInvoicePdfViewer } from '../../../accounting/components/invoice-pdf-viewer-dialog/invoice-pdf-viewer-dialog.component';
 import { InventoryTransferService } from '../../services/inventory-transfer.service';
 import { InventoryTransfer, TransferLine, TransferProductSummary } from '../../models/inventory-transfer.model';
 import { RemoveTrailingZerosPipe } from '../../../../core/pipes/remove-trailing-zeros.pipe';
@@ -244,12 +245,7 @@ export class TransferDetailDialogComponent implements OnInit {
     this.transferService.downloadTransferPdf(t.id, t.folio).subscribe({
       next: ({ blob, filename }) => {
         this.downloadingPdf.set(false);
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.click();
-        URL.revokeObjectURL(url);
+        openInvoicePdfViewer(this.dialog, URL.createObjectURL(blob), filename || t.folio || 'Transferencia');
       },
       error: (err) => {
         this.downloadingPdf.set(false);

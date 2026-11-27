@@ -11,6 +11,7 @@ import {
 } from '../../../sales-orders/utils/sales-order-display.util';
 import { salesOrderListPaymentMetaLabel } from '../../../sales-orders/utils/sales-order-collection.util';
 import { SalesOrderDetailDialogComponent } from '../../../sales-orders/components/sales-order-detail-dialog/sales-order-detail-dialog.component';
+import { openInvoicePdfViewer } from '../../../accounting/components/invoice-pdf-viewer-dialog/invoice-pdf-viewer-dialog.component';
 import { CreateSalesOrderModalComponent } from '../../../sales-orders/components/create-sales-order-modal/create-sales-order-modal.component';
 import { TaxCalculatorService } from '../../../purchase-orders/services/tax-calculator.service';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
@@ -132,7 +133,7 @@ export class CustomerSalesOrdersComponent implements OnInit {
           });
           return;
         }
-        window.open(file.signedUrl, '_blank', 'noopener');
+        openInvoicePdfViewer(this.dialog, file.signedUrl, invoice.folio || order.folio || 'Factura');
       },
       error: () => {
         this.downloadingKey.set(null);
@@ -153,12 +154,11 @@ export class CustomerSalesOrdersComponent implements OnInit {
     this.salesOrderService.downloadTicketPdf(order.id).subscribe({
       next: (blob) => {
         this.downloadingKey.set(null);
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `TICKET-${order.folio || 'orden'}.pdf`;
-        link.click();
-        URL.revokeObjectURL(url);
+        openInvoicePdfViewer(
+          this.dialog,
+          URL.createObjectURL(blob),
+          `TICKET-${order.folio || 'orden'}`,
+        );
       },
       error: () => {
         this.downloadingKey.set(null);

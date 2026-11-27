@@ -23,6 +23,7 @@ import { SidebarService } from '../../../../core/services/sidebar.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AssignedBranch, AuthService } from '../../../../core/services/auth.service';
 import { MatDialog } from '@angular/material/dialog';
+import { openInvoicePdfViewer } from '../../../accounting/components/invoice-pdf-viewer-dialog/invoice-pdf-viewer-dialog.component';
 import {
   LucideAngularModule,
   Search,
@@ -1214,6 +1215,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         this.openDocumentPath(
           detail.documents?.find((doc) => doc.document_type_name === 'DOCUMENTO_ORIGINAL')?.path,
           'El PDF de la cotización aún se está generando.',
+          'Cotización',
         );
       },
       error: (error: unknown) => {
@@ -1233,6 +1235,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
         this.openDocumentPath(
           detail.documents?.find((doc) => doc.document_type_name === 'DOCUMENTO_ORIGINAL')?.path,
           'El PDF de la orden aún se está generando.',
+          'Orden',
         );
       },
       error: (error: unknown) => {
@@ -1247,7 +1250,7 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     this.quotations.getAdvancePdf(quotationId, invoiceId).subscribe({
       next: (response) => {
         this.pdfBusy.set('');
-        this.openDocumentPath(response.signedUrl, 'No se recibió el PDF del anticipo');
+        this.openDocumentPath(response.signedUrl, 'No se recibió el PDF del anticipo', 'Anticipo');
       },
       error: (error: unknown) => {
         this.pdfBusy.set('');
@@ -1256,13 +1259,13 @@ export class TakeOrderComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  private openDocumentPath(path: string | null | undefined, missing: string): void {
+  private openDocumentPath(path: string | null | undefined, missing: string, title = 'PDF'): void {
     const url = String(path ?? '').trim();
     if (!url) {
       this.notifyError(missing);
       return;
     }
-    window.open(url, '_blank', 'noopener,noreferrer');
+    openInvoicePdfViewer(this.dialog, url, title);
   }
 
   private applyReturnedTicket(ticket: PosSaleInProgress): void {

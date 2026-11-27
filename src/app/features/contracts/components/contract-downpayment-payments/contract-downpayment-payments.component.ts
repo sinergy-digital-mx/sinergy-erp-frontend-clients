@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, OnInit, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
+import { openInvoicePdfViewer } from '../../../accounting/components/invoice-pdf-viewer-dialog/invoice-pdf-viewer-dialog.component';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { LucideAngularModule, DollarSign, Edit, RotateCcw, Trash2, Plus, Pencil, FileDown, Mail } from 'lucide-angular';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
@@ -56,12 +57,7 @@ export class ContractDownpaymentPaymentsComponent implements OnInit {
   downloadReceipt(payment: DownPaymentPayment): void {
     this.paymentService.downloadReceipt(this.contractId, payment.id, 'downpayment').subscribe({
       next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `recibo-enganche-${payment.payment_number}.pdf`;
-        link.click();
-        URL.revokeObjectURL(url);
+        openInvoicePdfViewer(this.dialog, URL.createObjectURL(blob), `Recibo ${payment.payment_number}`);
       },
       error: () => {
         this.interceptorService.openSnackbar({

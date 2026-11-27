@@ -1,6 +1,7 @@
 import { Component, Input, OnChanges, OnInit, SimpleChanges, signal, Output, EventEmitter } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
+import { openInvoicePdfViewer } from '../../../accounting/components/invoice-pdf-viewer-dialog/invoice-pdf-viewer-dialog.component';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { PaymentService } from '../../services/payment.service';
 import { Payment, PaymentStats } from '../../models/payment.model';
@@ -311,12 +312,7 @@ export class ContractPaymentsComponent implements OnInit, OnChanges {
   downloadReceipt(payment: Payment) {
     this.paymentService.downloadReceipt(this.contractId, payment.id).subscribe({
       next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `recibo-${payment.payment_number}.pdf`;
-        link.click();
-        URL.revokeObjectURL(url);
+        openInvoicePdfViewer(this.dialog, URL.createObjectURL(blob), `Recibo ${payment.payment_number}`);
       },
       error: () => {
         this.interceptorService.openSnackbar({
