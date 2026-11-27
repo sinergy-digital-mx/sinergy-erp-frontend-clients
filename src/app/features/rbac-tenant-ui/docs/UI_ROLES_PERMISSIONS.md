@@ -2,6 +2,10 @@
 
 Editor de un rol en `/settings/roles`.
 
+## 2026-11-27 — Texto del permiso
+
+En cada permiso el texto en negrita es la descripción. El código (`sales_orders:approve`) queda abajo, en gris.
+
 ## 2026-11-27
 
 Arriba del árbol: permisos asignados y cuántos módulos tienen al menos un permiso.

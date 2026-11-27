@@ -25,10 +25,7 @@ import { openInvoicePdfViewer } from '../../../accounting/components/invoice-pdf
 import { EditSalesOrderLineDialogComponent } from '../../../sales-orders/components/edit-sales-order-line-dialog/edit-sales-order-line-dialog.component';
 import { AddSalesOrderLineDialogComponent } from '../../../sales-orders/components/add-sales-order-line-dialog/add-sales-order-line-dialog.component';
 import { SalesOrderLineItem } from '../../../sales-orders/models/sales-order.model';
-import {
-  formatTitleCase,
-  getSalesOrderListCompanyName,
-} from '../../../sales-orders/utils/sales-order-display.util';
+import { formatTitleCase } from '../../../sales-orders/utils/sales-order-display.util';
 import {
   resolveSalesOrderCustomerId,
   resolveSalesOrderCustomerName,
@@ -291,10 +288,6 @@ export class QuotationDetailDialogComponent implements OnInit {
       this.router.createUrlTree(['/customers/detail', customerId]),
     );
     window.open(url, '_blank', 'noopener,noreferrer');
-  }
-
-  getCustomerCompanyName(): string {
-    return getSalesOrderListCompanyName(this.header() as any);
   }
 
   getSellerDisplayName(): string {

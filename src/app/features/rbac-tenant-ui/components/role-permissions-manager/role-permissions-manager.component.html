@@ -173,9 +173,11 @@
                             (change)="togglePermission(permission)"
                             class="perm-item__check">
                           <span class="perm-item__text">
-                            <span class="perm-item__name">{{ permission.name }}</span>
                             @if (permission.description) {
-                              <span class="perm-item__desc">{{ permission.description }}</span>
+                              <span class="perm-item__name">{{ permission.description }}</span>
+                              <span class="perm-item__desc">{{ permission.name }}</span>
+                            } @else {
+                              <span class="perm-item__name">{{ permission.name }}</span>
                             }
                           </span>
                         </label>

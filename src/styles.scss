@@ -433,7 +433,11 @@ main,
 }
 
 .cdk-overlay-pane.order-detail-dialog-container:has(app-sales-order-detail-dialog),
-.mat-mdc-dialog-panel.order-detail-dialog-container:has(app-sales-order-detail-dialog) {
+.mat-mdc-dialog-panel.order-detail-dialog-container:has(app-sales-order-detail-dialog),
+.cdk-overlay-pane.order-detail-dialog-container:has(app-order-detail-dialog),
+.mat-mdc-dialog-panel.order-detail-dialog-container:has(app-order-detail-dialog),
+.cdk-overlay-pane.order-detail-dialog-container:has(app-quotation-detail-dialog),
+.mat-mdc-dialog-panel.order-detail-dialog-container:has(app-quotation-detail-dialog) {
   width: calc(100vw - 0.75rem) !important;
   max-width: calc(100vw - 0.75rem) !important;
   height: calc(100dvh - 0.75rem) !important;
@@ -505,7 +509,8 @@ main,
 .mat-mdc-dialog-container:has(.order-detail-dialog) .mat-mdc-dialog-inner-container,
 .mat-mdc-dialog-container:has(.order-detail-dialog) .mat-mdc-dialog-surface,
 .mat-mdc-dialog-container:has(.order-detail-dialog) app-sales-order-detail-dialog,
-.mat-mdc-dialog-container:has(.order-detail-dialog) app-order-detail-dialog {
+.mat-mdc-dialog-container:has(.order-detail-dialog) app-order-detail-dialog,
+.mat-mdc-dialog-container:has(.order-detail-dialog) app-quotation-detail-dialog {
   width: 100% !important;
   height: 100% !important;
   max-width: 100% !important;
@@ -589,7 +594,11 @@ main,
   .cdk-overlay-pane.order-detail-dialog-container,
   .mat-mdc-dialog-panel.order-detail-dialog-container,
   .cdk-overlay-pane.order-detail-dialog-container:has(app-sales-order-detail-dialog),
-  .mat-mdc-dialog-panel.order-detail-dialog-container:has(app-sales-order-detail-dialog) {
+  .mat-mdc-dialog-panel.order-detail-dialog-container:has(app-sales-order-detail-dialog),
+  .cdk-overlay-pane.order-detail-dialog-container:has(app-order-detail-dialog),
+  .mat-mdc-dialog-panel.order-detail-dialog-container:has(app-order-detail-dialog),
+  .cdk-overlay-pane.order-detail-dialog-container:has(app-quotation-detail-dialog),
+  .mat-mdc-dialog-panel.order-detail-dialog-container:has(app-quotation-detail-dialog) {
     left: 0 !important;
     top: 0 !important;
     transform: none !important;
@@ -1026,7 +1035,11 @@ main,
   }
 
   .cdk-overlay-pane.order-detail-dialog-container:has(app-sales-order-detail-dialog),
-  .mat-mdc-dialog-panel.order-detail-dialog-container:has(app-sales-order-detail-dialog) {
+  .mat-mdc-dialog-panel.order-detail-dialog-container:has(app-sales-order-detail-dialog),
+  .cdk-overlay-pane.order-detail-dialog-container:has(app-order-detail-dialog),
+  .mat-mdc-dialog-panel.order-detail-dialog-container:has(app-order-detail-dialog),
+  .cdk-overlay-pane.order-detail-dialog-container:has(app-quotation-detail-dialog),
+  .mat-mdc-dialog-panel.order-detail-dialog-container:has(app-quotation-detail-dialog) {
     width: calc(100% - 0.75rem) !important;
     max-width: calc(100% - 0.75rem) !important;
     height: calc(100% - 0.75rem) !important;

@@ -62,15 +62,17 @@
         <h2 class="dialog-header__folio">#{{ header()!.folio || header()!.id.substring(0, 8) }}</h2>
       </div>
       <div class="dialog-header-actions">
-        <span
-          class="currency-badge"
-          [class.currency-badge--usd]="getPaymentCurrency() === 'USD'"
-          [title]="getPaymentCurrency() === 'USD' ? 'Dólares' : 'Pesos'">
-          {{ getPaymentCurrency() }}
-        </span>
-        <span class="status-badge" [ngClass]="getStatusBadgeClass()">
-          {{ header()!.general_status || '-' }}
-        </span>
+        <div class="header-status">
+          <span
+            class="currency-badge"
+            [class.currency-badge--usd]="getPaymentCurrency() === 'USD'"
+            [title]="getPaymentCurrency() === 'USD' ? 'Dólares' : 'Pesos'">
+            {{ getPaymentCurrency() }}
+          </span>
+          <span class="status-badge" [ngClass]="getStatusBadgeClass()">
+            {{ header()!.general_status || '-' }}
+          </span>
+        </div>
         <button
           type="button"
           class="refresh-btn"
@@ -94,10 +96,9 @@
               <i class="fi fi-rr-document"></i>
             </div>
             <div class="info-card__content">
-              <span class="info-card__label">RAZÓN SOCIAL</span>
-              <span class="info-card__value">{{ getRazonSocialDisplayName() }}</span>
+              <span class="info-card__value" [title]="getRazonSocialDisplayName()">{{ getRazonSocialDisplayName() }}</span>
               @if (getRazonSocialSubtitle()) {
-                <span class="info-card__subvalue">{{ getRazonSocialSubtitle() }}</span>
+                <span class="info-card__subvalue" [title]="getRazonSocialSubtitle()">{{ getRazonSocialSubtitle() }}</span>
               }
             </div>
           </div>
@@ -107,10 +108,9 @@
               <i class="fi fi-rr-building"></i>
             </div>
             <div class="info-card__content">
-              <span class="info-card__label">SUCURSAL</span>
-              <span class="info-card__value">{{ getSucursalDisplayName() }}</span>
+              <span class="info-card__value" [title]="getSucursalDisplayName()">{{ getSucursalDisplayName() }}</span>
               @if (getSucursalSubtitle()) {
-                <span class="info-card__subvalue">{{ getSucursalSubtitle() }}</span>
+                <span class="info-card__subvalue" [title]="getSucursalSubtitle()">{{ getSucursalSubtitle() }}</span>
               }
             </div>
           </div>
@@ -129,10 +129,7 @@
             </div>
             <div class="info-card__content">
               <span class="info-card__label">CLIENTE</span>
-              <span class="info-card__value">{{ getCustomerDisplayName() }}</span>
-              @if (getCustomerCompanyName()) {
-                <span class="info-card__subvalue">{{ getCustomerCompanyName() }}</span>
-              }
+              <span class="info-card__value" [title]="getCustomerDisplayName()">{{ getCustomerDisplayName() }}</span>
             </div>
             @if (canOpenCustomer()) {
               <i class="fi fi-rr-angle-right info-card__chevron"></i>

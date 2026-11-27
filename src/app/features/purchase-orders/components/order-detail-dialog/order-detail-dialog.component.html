@@ -68,15 +68,17 @@
         }
       </div>
       <div class="dialog-header-actions">
-        <span
-          class="currency-badge"
-          [class.currency-badge--usd]="getPaymentCurrency() === 'USD'"
-          [title]="getPaymentCurrency() === 'USD' ? 'Dólares' : 'Pesos'">
-          {{ getPaymentCurrency() }}
-        </span>
-        <span class="status-badge" [ngClass]="getStatusBadgeClass()">
-          {{ order()!.general_status || order()!.status }}
-        </span>
+        <div class="header-status">
+          <span
+            class="currency-badge"
+            [class.currency-badge--usd]="getPaymentCurrency() === 'USD'"
+            [title]="getPaymentCurrency() === 'USD' ? 'Dólares' : 'Pesos'">
+            {{ getPaymentCurrency() }}
+          </span>
+          <span class="status-badge" [ngClass]="getStatusBadgeClass()">
+            {{ order()!.general_status || order()!.status }}
+          </span>
+        </div>
         <button
           type="button"
           class="refresh-btn"
@@ -105,7 +107,7 @@
             </div>
             <div class="info-card__content">
               <span class="info-card__label">CREADO POR</span>
-              <span class="info-card__value">{{ order()!.creator?.first_name }} {{ order()!.creator?.last_name || 'N/A' }}</span>
+              <span class="info-card__value" [title]="(order()!.creator?.first_name || '') + ' ' + (order()!.creator?.last_name || '')">{{ order()!.creator?.first_name }} {{ order()!.creator?.last_name || 'N/A' }}</span>
             </div>
           </div>
 
@@ -122,10 +124,12 @@
             </div>
             <div class="info-card__content">
               <span class="info-card__label">PROVEEDOR</span>
-              <span class="info-card__value">{{ order()!.vendor?.company_name || order()!.vendor?.name || 'N/A' }}</span>
-              @if (isInternationalVendor()) {
-                <span class="info-card__badge">Internacional</span>
-              }
+              <span class="info-card__value-row">
+                <span class="info-card__value" [title]="order()!.vendor?.company_name || order()!.vendor?.name || 'N/A'">{{ order()!.vendor?.company_name || order()!.vendor?.name || 'N/A' }}</span>
+                @if (isInternationalVendor()) {
+                  <span class="info-card__badge">Internacional</span>
+                }
+              </span>
             </div>
             @if (canOpenVendor()) {
               <i class="fi fi-rr-angle-right info-card__chevron"></i>
@@ -144,10 +148,9 @@
               <i class="fi fi-rr-document"></i>
             </div>
             <div class="info-card__content">
-              <span class="info-card__label">RAZÓN SOCIAL</span>
-              <span class="info-card__value">{{ getRazonSocialDisplayName() }}</span>
+              <span class="info-card__value" [title]="getRazonSocialDisplayName()">{{ getRazonSocialDisplayName() }}</span>
               @if (getRazonSocialSubtitle()) {
-                <span class="info-card__subvalue">{{ getRazonSocialSubtitle() }}</span>
+                <span class="info-card__subvalue" [title]="getRazonSocialSubtitle()">{{ getRazonSocialSubtitle() }}</span>
               }
             </div>
             @if (canOpenFiscal()) {
@@ -167,10 +170,9 @@
               <i class="fi fi-rr-building"></i>
             </div>
             <div class="info-card__content">
-              <span class="info-card__label">SUCURSAL</span>
-              <span class="info-card__value">{{ getSucursalDisplayName() }}</span>
+              <span class="info-card__value" [title]="getSucursalDisplayName()">{{ getSucursalDisplayName() }}</span>
               @if (getSucursalSubtitle()) {
-                <span class="info-card__subvalue">{{ getSucursalSubtitle() }}</span>
+                <span class="info-card__subvalue" [title]="getSucursalSubtitle()">{{ getSucursalSubtitle() }}</span>
               }
             </div>
             @if (canOpenBranch()) {
@@ -191,7 +193,7 @@
             </div>
             <div class="info-card__content">
               <span class="info-card__label">ALMACÉN</span>
-              <span class="info-card__value">{{ getWarehouseDisplayName() }}</span>
+              <span class="info-card__value" [title]="getWarehouseDisplayName()">{{ getWarehouseDisplayName() }}</span>
             </div>
             @if (canOpenWarehouse()) {
               <i class="fi fi-rr-angle-right info-card__chevron"></i>

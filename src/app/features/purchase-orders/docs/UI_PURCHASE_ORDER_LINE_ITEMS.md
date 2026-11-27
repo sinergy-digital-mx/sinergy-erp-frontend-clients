@@ -1,5 +1,11 @@
 # UI — Editar / eliminar líneas de orden de compra
 
+## 2026-11-27 — Detalle
+
+Moneda y estado van en una sola franja. La ventana ocupa casi toda la pantalla. El encabezado de productos queda como el de mostrador. Razón social y sucursal no llevan título y quedan en dos líneas. Creado por, proveedor y almacén conservan el título con el dato debajo.
+
+
+
 El detalle de la OC **sí se puede editar por línea** mientras `general_status === 'Creada'`. El API ya lo hace.
 
 No uses `PUT /purchase-orders/:id` para cambiar el IVA o el precio de **una** línea: ese endpoint reemplaza **todas** las líneas. Usa PATCH/DELETE/POST de línea.
