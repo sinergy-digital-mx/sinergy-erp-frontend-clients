@@ -1,14 +1,20 @@
 {
-  "version": "0.0.207",
-  "buildId": "0.0.207-1795745317693",
-  "builtAt": "2026-11-27T02:08:37.693Z",
+  "version": "0.0.208",
+  "buildId": "0.0.208-1795816313155",
+  "builtAt": "2026-11-27T21:51:53.155Z",
   "channel": "full",
   "changes": [
     {
       "scope": "frontend",
-      "message": "En POS Caja se cambia quién cobra con su código, de caja o de ventas. El cobro, el anticipo, el abono y el corte parcial quedan a nombre de esa persona.",
-      "module": "pos",
-      "moduleLabel": "POS Ventas"
+      "message": "En Caja y cuentas el PDF de la factura se abre en un modal grande, sin salir de la página.",
+      "module": "accounting",
+      "moduleLabel": "Contabilidad"
+    },
+    {
+      "scope": "frontend",
+      "message": "En Ventas cobradas la columna Total se llama Cobrado, ya no está Pendiente, y bajo el folio sale el COT si la orden vino de una cotización.",
+      "module": "accounting",
+      "moduleLabel": "Contabilidad"
     }
   ]
 }

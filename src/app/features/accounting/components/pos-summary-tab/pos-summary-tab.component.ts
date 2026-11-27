@@ -24,9 +24,8 @@ import { isForShippingFlag } from '../../../sales-orders/models/sales-order.mode
 import { ORDER_DETAIL_DIALOG_OPTIONS } from '../../../../core/config/order-detail-dialog.config';
 import { PosReceiptPreviewDialogComponent } from '../../../pos/components/pos-receipt-preview-dialog/pos-receipt-preview-dialog.component';
 import { SalesOrderInvoiceService } from '../../../sales-orders/services/sales-order-invoice.service';
-import { SalesOrderElectronicInvoice } from '../../../sales-orders/models/sales-order-electronic-invoice.model';
 import { ToastService } from '../../../../core/services/toast.service';
-import { resolveHttpErrorMessage } from '../../../../core/utils/http-error-message.util';
+import { openStampedInvoicePdf } from '../../utils/open-stamped-invoice-pdf';
 
 @Component({
   selector: 'app-pos-summary-tab',
@@ -159,64 +158,15 @@ export class PosSummaryTabComponent implements OnChanges {
     if (!order.id || this.openingPdfId()) {
       return;
     }
-    if (order.invoice_id) {
-      this.fetchInvoicePdf(order.id, order.invoice_id);
-      return;
-    }
-    this.openingPdfId.set(order.id);
-    this.invoiceService.getInvoices(order.id).subscribe({
-      next: (invoices) => {
-        const invoiceId = this.pickInvoiceId(invoices);
-        if (!invoiceId) {
-          this.openingPdfId.set(null);
-          this.toast.error('Esta orden no tiene factura');
-          return;
-        }
-        this.fetchInvoicePdf(order.id, invoiceId);
-      },
-      error: (error) => {
-        this.openingPdfId.set(null);
-        this.toast.error(resolveHttpErrorMessage(error, 'No se pudo abrir el PDF de la factura'));
-      },
-    });
-  }
-
-  private fetchInvoicePdf(orderId: string, invoiceId: string): void {
-    this.openingPdfId.set(orderId);
-    this.invoiceService.getInvoicePdf(orderId, invoiceId).subscribe({
-      next: (response) => {
-        this.openingPdfId.set(null);
-        if (!response.signedUrl) {
-          this.toast.error('No se recibió el PDF de la factura');
-          return;
-        }
-        window.open(response.signedUrl, '_blank', 'noopener,noreferrer');
-      },
-      error: (error) => {
-        this.openingPdfId.set(null);
-        this.toast.error(resolveHttpErrorMessage(error, 'No se pudo abrir el PDF de la factura'));
-      },
-    });
-  }
-
-  private pickInvoiceId(invoices: SalesOrderElectronicInvoice[]): string | null {
-    const usable = invoices.filter((invoice) => {
-      const stamp = (invoice.stamp_status || '').toLowerCase();
-      const role = (invoice.invoice_role || '').toLowerCase();
-      return (
-        Boolean(invoice.uuid) &&
-        (stamp === 'stamped' || stamp === 'cancel_pending') &&
-        (role === 'merchandise' || role === 'standard' || role === 'advance' || !role)
-      );
-    });
-    const rank = (role?: string | null) => {
-      const value = (role || '').toLowerCase();
-      if (value === 'merchandise' || value === 'standard' || !value) return 0;
-      if (value === 'advance') return 1;
-      return 9;
-    };
-    usable.sort((left, right) => rank(left.invoice_role) - rank(right.invoice_role));
-    return usable[0]?.id || null;
+    openStampedInvoicePdf(
+      this.dialog,
+      this.invoiceService,
+      this.toast,
+      order.id,
+      (busy) => this.openingPdfId.set(busy ? order.id : null),
+      order.invoice_id,
+      order.folio ? `Factura ${order.folio}` : 'Factura',
+    );
   }
 
   openShiftLabel(shift: PosOpenDailyShiftSummary | null | undefined): string {

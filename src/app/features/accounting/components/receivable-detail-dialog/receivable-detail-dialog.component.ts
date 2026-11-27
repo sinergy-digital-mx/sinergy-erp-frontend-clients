@@ -97,9 +97,15 @@ export class ReceivableDetailDialogComponent implements OnInit {
 
   openInvoicePdf(row: AccountsReceivableOrderRow): void {
     if (!row.id || this.openingPdfId()) return;
-    openStampedInvoicePdf(this.invoices, this.toast, row.id, (busy) => {
-      this.openingPdfId.set(busy ? row.id : null);
-    });
+    openStampedInvoicePdf(
+      this.dialog,
+      this.invoices,
+      this.toast,
+      row.id,
+      (busy) => this.openingPdfId.set(busy ? row.id : null),
+      null,
+      row.folio ? `Factura ${row.folio}` : 'Factura',
+    );
   }
 
   openSalesOrder(row: AccountsReceivableOrderRow): void {

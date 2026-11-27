@@ -1,19 +1,23 @@
+import { MatDialog } from '@angular/material/dialog';
 import { SalesOrderElectronicInvoice } from '../../sales-orders/models/sales-order-electronic-invoice.model';
 import { SalesOrderInvoiceService } from '../../sales-orders/services/sales-order-invoice.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { resolveHttpErrorMessage } from '../../../core/utils/http-error-message.util';
+import { openInvoicePdfViewer } from '../components/invoice-pdf-viewer-dialog/invoice-pdf-viewer-dialog.component';
 
-/** Abre el PDF de la factura de ingreso vigente de una orden. */
+/** Abre el PDF de la factura de ingreso vigente de una orden, en un modal. */
 export function openStampedInvoicePdf(
+  dialog: MatDialog,
   invoices: SalesOrderInvoiceService,
   toast: ToastService,
   orderId: string,
   setBusy: (busy: boolean) => void,
   invoiceId?: string | null,
+  title?: string,
 ): void {
   if (!orderId) return;
   if (invoiceId) {
-    fetchPdf(invoices, toast, orderId, invoiceId, setBusy);
+    fetchPdf(dialog, invoices, toast, orderId, invoiceId, setBusy, title);
     return;
   }
   setBusy(true);
@@ -25,7 +29,7 @@ export function openStampedInvoicePdf(
         toast.error('Esta orden no tiene factura');
         return;
       }
-      fetchPdf(invoices, toast, orderId, picked, setBusy);
+      fetchPdf(dialog, invoices, toast, orderId, picked, setBusy, title);
     },
     error: (error) => {
       setBusy(false);
@@ -35,11 +39,13 @@ export function openStampedInvoicePdf(
 }
 
 function fetchPdf(
+  dialog: MatDialog,
   invoices: SalesOrderInvoiceService,
   toast: ToastService,
   orderId: string,
   invoiceId: string,
   setBusy: (busy: boolean) => void,
+  title?: string,
 ): void {
   setBusy(true);
   invoices.getInvoicePdf(orderId, invoiceId).subscribe({
@@ -49,7 +55,7 @@ function fetchPdf(
         toast.error('No se recibió el PDF de la factura');
         return;
       }
-      window.open(response.signedUrl, '_blank', 'noopener,noreferrer');
+      openInvoicePdfViewer(dialog, response.signedUrl, title);
     },
     error: (error) => {
       setBusy(false);

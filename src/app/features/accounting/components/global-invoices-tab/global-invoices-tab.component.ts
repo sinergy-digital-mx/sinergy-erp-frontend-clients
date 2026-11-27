@@ -17,6 +17,7 @@ import {
 } from '../../models/global-invoice.model';
 import { sharedBranchIdFromParams } from '../../utils/branch-query.util';
 import { monthFromQuery, replaceQuery } from '../../utils/accounting-view-query.util';
+import { openInvoicePdfViewer } from '../invoice-pdf-viewer-dialog/invoice-pdf-viewer-dialog.component';
 
 @Component({
   selector: 'app-global-invoices-tab',
@@ -226,7 +227,7 @@ export class GlobalInvoicesTabComponent implements OnInit, OnChanges {
           this.toast.error('No hay PDF de esta factura');
           return;
         }
-        window.open(url, '_blank', 'noopener');
+        openInvoicePdfViewer(this.dialog, url, this.invoiceFolio() || 'Factura');
       },
       error: (error) => {
         this.toast.error(resolveHttpErrorMessage(error, 'No se pudo abrir el PDF'));

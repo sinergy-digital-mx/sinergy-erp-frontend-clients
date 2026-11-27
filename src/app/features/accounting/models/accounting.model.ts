@@ -153,6 +153,8 @@ export interface PosCollectionRow {
   /** Anticipo, crédito o contado. */
   sale_kind?: 'advance' | 'credit' | 'cash';
   folio?: string;
+  /** Folio COT si la orden salió de una cotización. */
+  source_quotation_folio?: string | null;
   created_at: string;
   /** Día de calendario del abono (`YYYY-MM-DD`). Vacío si la orden aún no tiene pago. */
   payment_date?: string | null;

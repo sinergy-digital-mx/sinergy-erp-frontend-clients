@@ -299,6 +299,35 @@ main,
   height: min(860px, 92vh);
 }
 
+.cdk-overlay-pane.invoice-pdf-dialog-panel,
+.mat-mdc-dialog-panel.invoice-pdf-dialog-panel {
+  width: min(1040px, 96vw) !important;
+  max-width: 96vw !important;
+  height: 92vh !important;
+  max-height: 92vh !important;
+}
+
+.cdk-overlay-pane.invoice-pdf-dialog-panel .mat-mdc-dialog-container,
+.mat-mdc-dialog-panel.invoice-pdf-dialog-panel .mat-mdc-dialog-container,
+.cdk-overlay-pane.invoice-pdf-dialog-panel .mat-mdc-dialog-surface,
+.mat-mdc-dialog-panel.invoice-pdf-dialog-panel .mat-mdc-dialog-surface {
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  height: 100% !important;
+  max-height: 92vh !important;
+  border-radius: 12px !important;
+}
+
+.cdk-overlay-pane.invoice-pdf-dialog-panel .mat-mdc-dialog-component-host,
+.mat-mdc-dialog-panel.invoice-pdf-dialog-panel .mat-mdc-dialog-component-host {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
 .cdk-overlay-pane.invoice-email-dialog-panel,
 .mat-mdc-dialog-panel.invoice-email-dialog-panel {
   width: min(1440px, 94vw) !important;

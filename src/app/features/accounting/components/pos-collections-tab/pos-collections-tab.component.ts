@@ -94,15 +94,14 @@ export class PosCollectionsTabComponent implements OnChanges {
   tableConfig = signal<IDatatableConfig>({
     rows: [] as PosCollectionRow[],
     columns: [
-      { name: 'Folio', prop: 'folio', sortable: false, canAutoResize: false, width: 140 },
+      { name: 'Folio', prop: 'folio', sortable: false, canAutoResize: false, width: 156 },
       { name: 'Fechas', prop: 'created_at', sortable: false, canAutoResize: false, width: 168 },
       { name: 'Sucursal', prop: 'billing_branch', sortable: false, canAutoResize: false, width: 108 },
       { name: 'Cliente', prop: 'customer', sortable: false, canAutoResize: false, width: 136 },
       { name: 'Vendedor / cajero', prop: 'seller', sortable: false, canAutoResize: true, width: 260 },
       { name: 'Pago', prop: 'payment_method', sortable: false, canAutoResize: false, width: 148 },
-      { name: 'Total', prop: 'total', sortable: false, canAutoResize: false, width: 96 },
+      { name: 'Cobrado', prop: 'total', sortable: false, canAutoResize: false, width: 96 },
       { name: 'Anticipo', prop: 'advance_given', sortable: false, canAutoResize: false, width: 100 },
-      { name: 'Pendiente', prop: 'amount_pending', sortable: false, canAutoResize: false, width: 100 },
       { name: 'Estatus', prop: 'payment_status', sortable: false, canAutoResize: false, width: 88 },
     ],
     externalPaging: true,
@@ -249,6 +248,13 @@ export class PosCollectionsTabComponent implements OnChanges {
     return isForShippingFlag(row.for_shipping);
   }
 
+  sourceQuotationLabel(row: PosCollectionRow): string {
+    const folio = row.source_quotation_folio?.trim();
+    if (!folio) return '';
+    if (folio.toUpperCase() === (row.folio || '').trim().toUpperCase()) return '';
+    return `de ${folio}`;
+  }
+
   saleKindLabel(row: PosCollectionRow): string {
     const kind = this.saleKind(row);
     if (kind === 'advance') return 'Anticipo';
@@ -359,9 +365,15 @@ export class PosCollectionsTabComponent implements OnChanges {
   openInvoicePdf(row: PosCollectionRow): void {
     const orderId = this.orderId(row);
     if (!orderId || this.openingPdfId()) return;
-    openStampedInvoicePdf(this.invoices, this.toast, orderId, (busy) => {
-      this.openingPdfId.set(busy ? orderId : null);
-    });
+    openStampedInvoicePdf(
+      this.dialog,
+      this.invoices,
+      this.toast,
+      orderId,
+      (busy) => this.openingPdfId.set(busy ? orderId : null),
+      null,
+      row.folio ? `Factura ${row.folio}` : 'Factura',
+    );
   }
 
   openTicket(row: PosCollectionRow): void {

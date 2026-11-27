@@ -149,6 +149,9 @@
           </button>
         }
       </div>
+      @if (sourceQuotationLabel(item)) {
+        <span class="folio-source">{{ sourceQuotationLabel(item) }}</span>
+      }
       <span [class]="saleKindClass(item)">{{ saleKindLabel(item) }}</span>
     </div>
   </td>
@@ -228,7 +231,6 @@
       —
     }
   </td>
-  <td class="money-cell">{{ formatCurrency(item.amount_pending) }}</td>
   <td>
     <span class="status-pill" [class.status-pill--paid]="item.payment_status === 'Pagado'">
       {{ item.payment_status || '—' }}

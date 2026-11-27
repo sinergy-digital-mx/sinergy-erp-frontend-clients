@@ -187,9 +187,15 @@ export class PosCollectionsDialogComponent implements OnInit {
   openInvoicePdf(row: PosCollectionRow): void {
     const orderId = this.orderId(row);
     if (!orderId || this.openingPdfId()) return;
-    openStampedInvoicePdf(this.invoices, this.toast, orderId, (busy) => {
-      this.openingPdfId.set(busy ? orderId : null);
-    });
+    openStampedInvoicePdf(
+      this.dialog,
+      this.invoices,
+      this.toast,
+      orderId,
+      (busy) => this.openingPdfId.set(busy ? orderId : null),
+      null,
+      row.folio ? `Factura ${row.folio}` : 'Factura',
+    );
   }
 
   openTicket(row: PosCollectionRow): void {

@@ -1,0 +1,9 @@
+<div class="pdf-viewer">
+  <header class="pdf-viewer__bar">
+    <h2>{{ title }}</h2>
+    <button type="button" class="pdf-viewer__close" aria-label="Cerrar" (click)="close()">
+      <i class="fi fi-rr-cross-small" aria-hidden="true"></i>
+    </button>
+  </header>
+  <iframe class="pdf-viewer__frame" [src]="pdfUrl" [title]="title"></iframe>
+</div>
