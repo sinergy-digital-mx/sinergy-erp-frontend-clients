@@ -85,6 +85,8 @@ export interface CollectSalePayload {
   check_payer_phone?: string;
   amount_credit_mxn?: number;
   customer_id?: number | string;
+  /** Persona que cobra. La terminal de caja sigue siendo la sesión. */
+  collected_by_user_id?: string;
   generate_invoice?: boolean;
   stamp_environment?: 'demo' | 'production';
   /** Moneda del documento. USD solo si el pago en dólares es mayor. */

@@ -1,4 +1,4 @@
-import { Component, Inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, Inject, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
@@ -11,6 +11,7 @@ import { Quotation, QuotationLineItem } from '../../../quotations/models/quotati
 import { SalesOrderService } from '../../../sales-orders/services/sales-order.service';
 import { SalesOrder, SalesOrderLineItem } from '../../../sales-orders/models/sales-order.model';
 import { POSService } from '../../services/pos.service';
+import { PosStateService } from '../../services/pos-state.service';
 import {
   AdvanceWizardDialogComponent,
   wizardLinesFromQuotation,
@@ -120,6 +121,7 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
   abonoAmount = '';
   abonoReference = '';
 
+  private readonly posState = inject(PosStateService);
   private readonly search$ = new Subject<string>();
   private readonly destroy$ = new Subject<void>();
   private loadSeq = 0;
@@ -504,6 +506,11 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
       this.abonoError.set(`El monto no puede pasar de ${this.formatMoney(pending)}`);
       return;
     }
+    const cashierId = this.data.mode === 'caja' ? this.posState.cashier()?.id : undefined;
+    if (this.data.mode === 'caja' && !cashierId) {
+      this.abonoError.set('Ingresa el código de quien cobra');
+      return;
+    }
     const reference = this.abonoReference.trim();
     if (this.needsReference() && !reference) {
       this.abonoError.set('La referencia es obligatoria');
@@ -518,6 +525,7 @@ export class PosFoliosDialogComponent implements OnInit, OnDestroy {
         payment_method: this.abonoMethod(),
         reference_number: reference || undefined,
         billing_branch_id: this.data.branchId,
+        collected_by_user_id: cashierId,
       })
       .subscribe({
         next: () => {

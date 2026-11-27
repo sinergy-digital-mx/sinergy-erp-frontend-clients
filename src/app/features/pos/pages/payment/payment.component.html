@@ -42,6 +42,18 @@
           </div>
         }
 
+        @if (posState.cashier()) {
+          <button type="button" class="pos-meta pos-meta--action" (click)="changeCashier()" title="Cambiar quién cobra">
+            <span class="pos-meta__k">Cajero</span>
+            <span class="pos-meta__v">{{ posState.cashierDisplayName() }}</span>
+          </button>
+        } @else {
+          <button type="button" class="pos-meta pos-meta--action" (click)="openCashierCodeDialog()" title="Ingresar código de quien cobra">
+            <span class="pos-meta__k">Cajero</span>
+            <span class="pos-meta__v">Código</span>
+          </button>
+        }
+
         @if (shift(); as currentShift) {
           <div class="pos-meta">
             <span class="pos-meta__k">Total</span>

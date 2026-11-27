@@ -18,12 +18,14 @@ export interface PosSellerUser {
 }
 
 const SELLER_STORAGE_KEY = 'pos_active_seller';
+const CASHIER_STORAGE_KEY = 'pos_active_cashier';
 
 @Injectable({ providedIn: 'root' })
 export class PosStateService {
   dailyShift = signal<PosDailyShiftDetail | null>(null);
   unclosedShiftAlert = signal<UnclosedShiftAlert | null>(null);
   seller = signal<PosSellerUser | null>(this.readStoredSeller());
+  cashier = signal<PosSellerUser | null>(this.readStoredCashier());
   fiscalConfigurationId = signal<string | null>(null);
   checkingShift = signal(false);
 
@@ -93,20 +95,41 @@ export class PosStateService {
     this.setSeller(null);
   }
 
+  setCashier(cashier: PosSellerUser | null): void {
+    this.cashier.set(cashier);
+    if (cashier) {
+      sessionStorage.setItem(CASHIER_STORAGE_KEY, JSON.stringify(cashier));
+    } else {
+      sessionStorage.removeItem(CASHIER_STORAGE_KEY);
+    }
+  }
+
+  clearCashier(): void {
+    this.setCashier(null);
+  }
+
   clearAll(): void {
     this.dailyShift.set(null);
     this.unclosedShiftAlert.set(null);
     this.clearSeller();
+    this.clearCashier();
     this.fiscalConfigurationId.set(null);
   }
 
+  cashierDisplayName(): string {
+    return this.personDisplayName(this.cashier());
+  }
+
   sellerDisplayName(): string {
-    const s = this.seller();
-    if (!s) {
+    return this.personDisplayName(this.seller());
+  }
+
+  private personDisplayName(person: PosSellerUser | null): string {
+    if (!person) {
       return '';
     }
-    const name = `${s.first_name ?? ''} ${s.last_name ?? ''}`.trim();
-    return name || s.email || (s.pos_user_code ? `Código ${s.pos_user_code}` : '');
+    const name = `${person.first_name ?? ''} ${person.last_name ?? ''}`.trim();
+    return name || person.email || (person.pos_user_code ? `Código ${person.pos_user_code}` : '');
   }
 
   private syncUnclosedAlert(shift: PosDailyShiftDetail | null): void {
@@ -129,8 +152,16 @@ export class PosStateService {
   }
 
   private readStoredSeller(): PosSellerUser | null {
+    return this.readStoredPerson(SELLER_STORAGE_KEY);
+  }
+
+  private readStoredCashier(): PosSellerUser | null {
+    return this.readStoredPerson(CASHIER_STORAGE_KEY);
+  }
+
+  private readStoredPerson(key: string): PosSellerUser | null {
     try {
-      const raw = sessionStorage.getItem(SELLER_STORAGE_KEY);
+      const raw = sessionStorage.getItem(key);
       return raw ? (JSON.parse(raw) as PosSellerUser) : null;
     } catch {
       return null;

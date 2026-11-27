@@ -48,6 +48,7 @@ import {
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PosConfirmDialogComponent } from '../../components/pos-confirm-dialog/pos-confirm-dialog.component';
+import { SellerCodeDialogComponent } from '../../components/seller-code-dialog/seller-code-dialog.component';
 import { PosFoliosDialogComponent } from '../../components/pos-folios-dialog/pos-folios-dialog.component';
 import { POS_PERMISSIONS } from '../../config/permissions.config';
 import { ExchangeRateService } from '../../../../core/services/exchange-rate.service';
@@ -262,6 +263,8 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly ngZone = inject(NgZone);
   private ignoreCajaEject = false;
   private destroyed = false;
+  private cashierDialogOpen = false;
+  private cashierPrompted = false;
   private collectedBadgeTimer: ReturnType<typeof setTimeout> | null = null;
   collectedBadgeHold = signal<number | null>(null);
   collectedBadgePulse = signal(false);
@@ -701,6 +704,67 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     return email.split('@')[0] || 'Caja';
   }
 
+  changeCashier(): void {
+    this.openCashierCodeDialog();
+  }
+
+  openCashierCodeDialog(onReady?: (cashierId: string) => void): void {
+    if (this.cashierDialogOpen) {
+      return;
+    }
+    this.cashierDialogOpen = true;
+    const dialogRef = this.dialog.open(SellerCodeDialogComponent, {
+      width: '400px',
+      maxWidth: '95vw',
+      disableClose: !this.posState.cashier(),
+      panelClass: 'pos-dialog-panel',
+      data: {
+        title: 'Código de caja',
+        subtitle: 'Ingresa tu código para cobrar. Puede ser de caja o de ventas.',
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((code: number | undefined) => {
+      this.cashierDialogOpen = false;
+      if (code == null) {
+        return;
+      }
+      this.posService.validateCashierCode(code).subscribe({
+        next: (response) => {
+          if (!response.cashier?.id) {
+            this.toast.error('No se pudo identificar a quien cobra');
+            this.openCashierCodeDialog(onReady);
+            return;
+          }
+          this.posState.setCashier(response.cashier);
+          this.toast.success(`Cajero: ${this.posState.cashierDisplayName()}`, { duration: 3000 });
+          onReady?.(response.cashier.id);
+        },
+        error: (error) => {
+          this.toast.error(mapPosApiErrorMessage(error.error?.message));
+          this.openCashierCodeDialog(onReady);
+        },
+      });
+    });
+  }
+
+  private maybePromptCashier(): void {
+    if (this.cashierPrompted || this.posState.cashier() || this.cashierDialogOpen || this.destroyed) {
+      return;
+    }
+    this.cashierPrompted = true;
+    this.openCashierCodeDialog();
+  }
+
+  private ensureCashier(run: (cashierId: string) => void): void {
+    const current = this.posState.cashier();
+    if (current?.id) {
+      run(current.id);
+      return;
+    }
+    this.openCashierCodeDialog(run);
+  }
+
   branchLabel(): string {
     return this.posBranchSession.label();
   }
@@ -775,6 +839,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
         if (error?.status !== 404) {
           this.toast.error(mapPosApiErrorMessage(error.error?.message));
         }
+        this.maybePromptCashier();
       },
     });
   }
@@ -784,6 +849,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!alert) {
       this.unclosedDialogRef?.close();
       this.unclosedDialogRef = null;
+      this.maybePromptCashier();
       return;
     }
 
@@ -804,6 +870,13 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
         alert,
         onCloseShift: () => this.closeDailyShift(),
       },
+    });
+    const unclosedRef = this.unclosedDialogRef;
+    unclosedRef.afterClosed().subscribe(() => {
+      if (this.unclosedDialogRef === unclosedRef) {
+        this.unclosedDialogRef = null;
+      }
+      this.maybePromptCashier();
     });
   }
 
@@ -950,6 +1023,10 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   openPartialShift(): void {
+    this.ensureCashier(() => this.openPartialShiftDialog());
+  }
+
+  private openPartialShiftDialog(): void {
     const shift = this.shift();
     if (!shift?.id) {
       return;
@@ -967,7 +1044,10 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
       if (!result) {
         return;
       }
-      this.posService.createPartialShift(shift.id, result).subscribe({
+      this.posService.createPartialShift(shift.id, {
+        ...result,
+        performed_by_user_id: this.posState.cashier()?.id,
+      }).subscribe({
         next: () => {
           this.toast.success('Corte parcial registrado');
           this.setDashboardTab('shifts');
@@ -2116,6 +2196,13 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
         : {}),
     };
 
+    this.ensureCashier((cashierId) => this.submitCollect(sale, { ...payload, collected_by_user_id: cashierId }));
+  }
+
+  private submitCollect(
+    sale: PendingSale,
+    payload: ReturnType<typeof buildCollectPayload> & { collected_by_user_id: string },
+  ): void {
     this.collecting.set(true);
     this.collectError.set(null);
 
@@ -2192,7 +2279,7 @@ export class PaymentComponent implements OnInit, AfterViewInit, OnDestroy {
         } else {
           this.toast.success(`Venta ${folio} cobrada`);
         }
-        if (form.paymentMethod === 'credit') {
+        if (payload.payment_method === 'credit') {
           this.toast.info('Orden a crédito: sigue pendiente de cobro', { duration: 5000 });
         }
         this.selectedSale.set(null);

@@ -6,6 +6,10 @@ export interface PosSellerUser {
   pos_user_code?: number | null;
 }
 
+export interface ValidateCashierCodeResponse {
+  cashier: PosSellerUser;
+}
+
 export interface ValidateSellerCodeResponse {
   seller: PosSellerUser;
   terminal_user?: {

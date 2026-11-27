@@ -1,8 +1,13 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ButtonComponent } from '../../../../core/components/button/button.component';
+
+export interface SellerCodeDialogData {
+  title?: string;
+  subtitle?: string;
+}
 
 @Component({
   selector: 'app-seller-code-dialog',
@@ -12,6 +17,9 @@ import { ButtonComponent } from '../../../../core/components/button/button.compo
   styleUrl: './seller-code-dialog.component.scss',
 })
 export class SellerCodeDialogComponent {
+  private readonly data = inject(MAT_DIALOG_DATA, { optional: true }) as SellerCodeDialogData | null;
+  readonly title = this.data?.title ?? 'Código de vendedor';
+  readonly subtitle = this.data?.subtitle ?? 'Ingresa tu código para registrar ventas en esta terminal.';
   code = signal<number | null>(null);
   error = signal<string | null>(null);
 

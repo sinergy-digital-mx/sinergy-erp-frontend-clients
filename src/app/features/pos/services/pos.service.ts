@@ -13,6 +13,7 @@ import {
   OpenDailyShiftResponse,
   PosDailyShiftListItem,
   PosDailyShiftListResponse,
+  ValidateCashierCodeResponse,
   ValidateSellerCodeResponse,
   normalizeDailyShiftDetail,
   parseUnclosedShiftAlert,
@@ -835,6 +836,16 @@ export class POSService {
     );
   }
 
+  validateCashierCode(code: number): Observable<ValidateCashierCodeResponse> {
+    const branchId = this.auth.getBillingBranchId();
+    return this.http.post(`${this.API_URL}/validate-cashier-code`, {
+      code,
+      ...(branchId ? { billing_branch_id: branchId } : {}),
+    }).pipe(
+      map((res: any) => this.extractPayload(res) as ValidateCashierCodeResponse)
+    );
+  }
+
   validateSellerCode(code: number): Observable<ValidateSellerCodeResponse> {
     const branchId = this.auth.getBillingBranchId();
     return this.http.post(`${this.API_URL}/validate-seller-code`, {
@@ -1131,6 +1142,7 @@ export class POSService {
       payment_method: 'cash' | 'card' | 'transfer' | 'check';
       reference_number?: string;
       billing_branch_id?: string;
+      collected_by_user_id?: string;
     },
   ): Observable<{
     folio?: string;
