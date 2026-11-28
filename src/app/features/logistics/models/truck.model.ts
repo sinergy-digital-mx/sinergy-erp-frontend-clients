@@ -63,6 +63,7 @@ export interface TruckQueryParams {
   search?: string;
   status?: TruckStatus;
   billing_branch_ids?: string;
+  assigned_only?: string;
 }
 
 export interface TruckListResponse {

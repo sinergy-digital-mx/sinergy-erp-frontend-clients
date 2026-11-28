@@ -22,8 +22,7 @@ import {
   truckUsageTitle,
 } from '../../models/truck.model';
 import { TruckService } from '../../services/truck.service';
-import { AuthService } from '../../../../core/services/auth.service';
-import { operatorTruckQuery, userHasAssignedBranches } from '../../utils/truck-branch-scope.util';
+import { LogisticsBranchScopeService } from '../../services/logistics-branch-scope.service';
 import { TruckFormModalComponent } from '../../components/truck-form-modal/truck-form-modal.component';
 
 @Component({
@@ -75,7 +74,6 @@ export class TrucksListComponent implements OnDestroy {
 
   search = '';
   onlyActive = true;
-  onlyMyBranches = true;
   private destroy$ = new Subject<void>();
   private searchTimer?: ReturnType<typeof setTimeout>;
   private lastQueryParams = '';
@@ -84,7 +82,7 @@ export class TrucksListComponent implements OnDestroy {
     private router: Router,
     private route: ActivatedRoute,
     private truckService: TruckService,
-    private auth: AuthService,
+    readonly branchScope: LogisticsBranchScopeService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {
@@ -111,7 +109,9 @@ export class TrucksListComponent implements OnDestroy {
         }),
         switchMap(() => {
           this.table_config.update((c) => ({ ...c, loading: true }));
-          return this.truckService.getTrucks(this.buildQueryParams());
+          return this.branchScope.ensureLoaded().pipe(
+            switchMap(() => this.truckService.getTrucks(this.buildQueryParams())),
+          );
         })
       )
       .subscribe({
@@ -140,11 +140,17 @@ export class TrucksListComponent implements OnDestroy {
     const normalizedSearch = this.search?.trim();
     if (normalizedSearch) params.search = normalizedSearch;
     if (this.onlyActive) params.status = 'active';
-    return operatorTruckQuery(this.auth, !this.onlyMyBranches, params);
+    const branchId = this.branchScope.selectedId();
+    if (branchId) {
+      return { ...params, billing_branch_ids: branchId, assigned_only: '1' };
+    }
+    return params;
   }
 
-  get showBranchScope(): boolean {
-    return userHasAssignedBranches(this.auth);
+  onBranchChange(id: string): void {
+    if (!id || id === this.branchScope.selectedId()) return;
+    this.branchScope.setSelected(id);
+    this.reload();
   }
 
   private applyResponse(res: {
@@ -205,11 +211,6 @@ export class TrucksListComponent implements OnDestroy {
     this.searchTimer = setTimeout(() => {
       this.syncQuery({ page: 1, search: value.trim() || undefined });
     }, 400);
-  }
-
-  onOnlyMyBranchesChange(checked: boolean): void {
-    this.onlyMyBranches = checked;
-    this.reload();
   }
 
   onOnlyActiveChange(checked: boolean): void {

@@ -5,6 +5,19 @@
       <p>Calendario de salidas. La lista muestra cada viaje con su unidad y chofer.</p>
     </div>
     <div class="logistics-page__actions">
+      @if (branchScope.ready() && branchScope.options().length) {
+        <select
+          class="logistics-select logistics-toolbar__select"
+          aria-label="Sucursal"
+          [disabled]="branchScope.options().length <= 1"
+          [value]="branchScope.selectedId()"
+          (change)="onBranchChange($any($event.target).value)"
+        >
+          @for (option of branchScope.options(); track option.id) {
+            <option [value]="option.id" [selected]="option.id === branchScope.selectedId()">{{ option.label }}</option>
+          }
+        </select>
+      }
       <div class="view-switch" role="tablist" aria-label="Vista de viajes">
         <button
           type="button"
@@ -36,8 +49,13 @@
     </div>
   </header>
 
-  @if (view() === 'calendar') {
-    <app-shippings-calendar [embedded]="true"></app-shippings-calendar>
+  @if (!branchScope.ready()) {
+    <div class="trip-state"><app-spinner></app-spinner></div>
+  } @else if (view() === 'calendar') {
+    <app-shippings-calendar
+      [embedded]="true"
+      [branchId]="branchScope.selectedId()"
+    ></app-shippings-calendar>
   } @else {
     <div class="logistics-toolbar">
       <select

@@ -15,6 +15,19 @@
       [value]="search"
       (input)="onSearch($any($event.target).value)"
     />
+    @if (branchScope.ready() && branchScope.options().length) {
+      <select
+        class="logistics-select logistics-toolbar__select"
+        aria-label="Sucursal"
+        [disabled]="branchScope.options().length <= 1"
+        [value]="branchScope.selectedId()"
+        (change)="onBranchChange($any($event.target).value)"
+      >
+        @for (option of branchScope.options(); track option.id) {
+          <option [value]="option.id" [selected]="option.id === branchScope.selectedId()">{{ option.label }}</option>
+        }
+      </select>
+    }
   </div>
 
   <app-datatable-wrapper
@@ -32,6 +45,28 @@
   </td>
   <td>
     <p class="dt-cell-muted m-0">{{ item.email || '—' }}</p>
+  </td>
+  <td>
+    @if (item.active_shipping_id) {
+      <button
+        type="button"
+        class="usage-badge"
+        [class.usage-badge--route]="isRoute(item)"
+        [class.usage-badge--created]="!isRoute(item)"
+        [title]="usageTitle(item)"
+        [attr.aria-label]="usageTitle(item)"
+        (click)="openShipping(item, $event)"
+      >
+        <span class="usage-badge__dot" aria-hidden="true"></span>
+        <span>En uso</span>
+        <span class="usage-badge__folio">{{ shippingFolio(item) }}</span>
+      </button>
+    } @else {
+      <span class="usage-badge usage-badge--free" title="Sin viaje activo">
+        <span class="usage-badge__dot" aria-hidden="true"></span>
+        Disponible
+      </span>
+    }
   </td>
   <td>
     <p class="dt-cell-muted m-0">{{ licenseOf(item) }}</p>

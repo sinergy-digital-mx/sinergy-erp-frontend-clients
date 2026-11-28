@@ -14,6 +14,7 @@ import { TripCardComponent } from '../../components/trip-card/trip-card.componen
 import { SHIPPING_PERMISSIONS } from '../../config/permissions.config';
 import { ShippingListItem } from '../../models/shipping.model';
 import { ShippingService } from '../../services/shipping.service';
+import { LogisticsBranchScopeService } from '../../services/logistics-branch-scope.service';
 import { ShippingsCalendarComponent } from '../shippings-calendar/shippings-calendar.component';
 
 type TripsView = 'calendar' | 'list';
@@ -53,9 +54,17 @@ export class TripsListComponent implements OnInit, OnDestroy {
     private router: Router,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
+    readonly branchScope: LogisticsBranchScopeService,
   ) {}
 
   ngOnInit(): void {
+    this.branchScope
+      .ensureLoaded()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.watchQuery());
+  }
+
+  private watchQuery(): void {
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe((params) => {
       const nextView: TripsView = params['view'] === 'list' ? 'list' : 'calendar';
       this.view.set(nextView);
@@ -80,6 +89,12 @@ export class TripsListComponent implements OnInit, OnDestroy {
       queryParams: { view: mode === 'list' ? 'list' : null },
       queryParamsHandling: 'merge',
     });
+  }
+
+  onBranchChange(id: string): void {
+    if (!id || id === this.branchScope.selectedId()) return;
+    this.branchScope.setSelected(id);
+    if (this.view() === 'list') this.load();
   }
 
   onStatusChange(value: string): void {
@@ -139,6 +154,7 @@ export class TripsListComponent implements OnInit, OnDestroy {
     this.shippingService
       .getShippings({
         status: this.status() || undefined,
+        involved_billing_branch_id: this.branchScope.selectedId() || undefined,
         page,
         limit,
       })

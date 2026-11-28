@@ -1,12 +1,24 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatDialog } from '@angular/material/dialog';
+import { Subject, takeUntil } from 'rxjs';
 import { User } from '../../../rbac-tenant-ui/models';
+import { ShippingDetailDialogComponent } from '../../components/shipping-detail-dialog/shipping-detail-dialog.component';
+import { truckShippingFolio, truckUsageStatusLabel } from '../../models/truck.model';
 import { ShippingService } from '../../services/shipping.service';
+import { LogisticsBranchScopeService } from '../../services/logistics-branch-scope.service';
 import { DatatableWrapperComponent } from '../../../../core/components/datatable-wrapper/datatable-wrapper.component';
 import {
   IDatatableConfig,
   IPaginationEvent,
 } from '../../../../core/components/datatable-wrapper/datatable-wrapper.interface';
+
+interface DriverRow extends User {
+  active_shipping_id?: string | null;
+  active_shipping_status?: string | null;
+  active_shipping_date?: string | null;
+  active_shipping_truck_name?: string | null;
+}
 
 @Component({
   selector: 'app-drivers-list',
@@ -15,15 +27,17 @@ import {
   templateUrl: './drivers-list.component.html',
   styleUrl: './drivers-list.component.scss',
 })
-export class DriversListComponent implements OnInit {
+export class DriversListComponent implements OnInit, OnDestroy {
   search = '';
-  private drivers: User[] = [];
+  private drivers: DriverRow[] = [];
+  private destroy$ = new Subject<void>();
 
   table_config = signal<IDatatableConfig>({
     rows: [],
     columns: [
       { name: 'Nombre', prop: 'name', sortable: false, canAutoResize: true, width: 220 },
-      { name: 'Correo', prop: 'email', sortable: false, canAutoResize: true, width: 280 },
+      { name: 'Correo', prop: 'email', sortable: false, canAutoResize: true, width: 240 },
+      { name: 'Uso', prop: 'usage', sortable: false, canAutoResize: false, width: 176 },
       { name: 'Licencia', prop: 'license', sortable: false, canAutoResize: true, width: 160 },
       { name: 'Carta porte', prop: 'carta_porte', sortable: false, canAutoResize: true, width: 180 },
     ],
@@ -41,12 +55,37 @@ export class DriversListComponent implements OnInit {
     reorderable: false,
   });
 
-  constructor(private shippingService: ShippingService) {}
+  constructor(
+    private shippingService: ShippingService,
+    private dialog: MatDialog,
+    readonly branchScope: LogisticsBranchScopeService,
+  ) {}
 
   ngOnInit(): void {
-    this.shippingService.getDrivers().subscribe({
+    this.branchScope
+      .ensureLoaded()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.load());
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  onBranchChange(id: string): void {
+    if (!id || id === this.branchScope.selectedId()) return;
+    this.branchScope.setSelected(id);
+    this.table_config.update((config) => ({ ...config, page: 1 }));
+    this.load();
+  }
+
+  private load(): void {
+    this.table_config.update((config) => ({ ...config, loading: true }));
+    const branchId = this.branchScope.selectedId() || undefined;
+    this.shippingService.getDrivers(branchId).subscribe({
       next: (users) => {
-        this.drivers = (users ?? [])
+        this.drivers = ((users ?? []) as DriverRow[])
           .filter((user) => this.isActive(user) && this.isDriver(user))
           .sort((a, b) => this.displayName(a).localeCompare(this.displayName(b), 'es'));
         this.applyPage();
@@ -79,6 +118,45 @@ export class DriversListComponent implements OnInit {
 
   cartaPorteReady(user: User): boolean {
     return user.carta_porte_ready === true;
+  }
+
+  isRoute(driver: DriverRow): boolean {
+    return driver.active_shipping_status?.trim().toLowerCase() === 'en ruta';
+  }
+
+  shippingFolio(driver: DriverRow): string {
+    return truckShippingFolio(driver.active_shipping_id);
+  }
+
+  usageTitle(driver: DriverRow): string {
+    if (!driver.active_shipping_id) return 'Sin viaje activo';
+    const folio = truckShippingFolio(driver.active_shipping_id);
+    const status = truckUsageStatusLabel(driver.active_shipping_status);
+    const day = this.formatDay(driver.active_shipping_date);
+    const truck = driver.active_shipping_truck_name?.trim();
+    return [`Viaje ${folio}`, status, day, truck].filter(Boolean).join(' · ');
+  }
+
+  openShipping(driver: DriverRow, event: Event): void {
+    event.stopPropagation();
+    const shippingId = driver.active_shipping_id;
+    if (!shippingId) return;
+    const ref = this.dialog.open(ShippingDetailDialogComponent, {
+      width: '96vw',
+      maxWidth: '1680px',
+      maxHeight: '96vh',
+      data: { shippingId },
+    });
+    ref.afterClosed().subscribe((result) => {
+      if (result?.updated) this.load();
+    });
+  }
+
+  private formatDay(value: string | null | undefined): string {
+    if (!value) return '';
+    const [year, month, day] = value.slice(0, 10).split('-');
+    if (!year || !month || !day) return '';
+    return `${day}/${month}/${year}`;
   }
 
   private isDriver(user: User): boolean {

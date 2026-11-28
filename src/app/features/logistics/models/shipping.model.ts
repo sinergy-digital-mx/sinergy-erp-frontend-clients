@@ -172,6 +172,7 @@ export interface ShippingQueryParams {
   driver_id?: string;
   truck_id?: string;
   billing_branch_id?: string;
+  involved_billing_branch_id?: string;
   origin_warehouse_id?: string;
   date_from?: string;
   date_to?: string;

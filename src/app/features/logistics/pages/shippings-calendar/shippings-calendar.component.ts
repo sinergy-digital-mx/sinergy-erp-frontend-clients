@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, OnInit, computed, signal } from '@angular/core';
+import { Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -44,8 +44,9 @@ interface CalendarEvent {
   templateUrl: './shippings-calendar.component.html',
   styleUrl: './shippings-calendar.component.scss',
 })
-export class ShippingsCalendarComponent implements OnInit, OnDestroy {
+export class ShippingsCalendarComponent implements OnInit, OnChanges, OnDestroy {
   @Input() embedded = false;
+  @Input() branchId = '';
 
   readonly ChevronLeft = ChevronLeft;
   readonly ChevronRight = ChevronRight;
@@ -85,6 +86,12 @@ export class ShippingsCalendarComponent implements OnInit, OnDestroy {
       this.statusFilter.set(params['status'] || '');
       this.loadMonth();
     });
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['branchId'] && !changes['branchId'].firstChange) {
+      this.loadMonth();
+    }
   }
 
   ngOnDestroy(): void {
@@ -142,6 +149,7 @@ export class ShippingsCalendarComponent implements OnInit, OnDestroy {
         date_from: this.toIso(from),
         date_to: this.toIso(to),
         status: this.statusFilter() || undefined,
+        involved_billing_branch_id: this.branchId || undefined,
         limit: 100,
       })
       .pipe(takeUntil(this.destroy$))

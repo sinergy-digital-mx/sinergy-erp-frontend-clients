@@ -116,8 +116,10 @@ export class ShippingService {
   }
 
   /** Choferes activos. Usa permiso de envíos, no el listado de usuarios. */
-  getDrivers(): Observable<User[]> {
-    return this.http.get<any>(`${this.baseUrl}/drivers`).pipe(
+  getDrivers(billingBranchId?: string): Observable<User[]> {
+    const params: Record<string, string> = {};
+    if (billingBranchId) params['billing_branch_id'] = billingBranchId;
+    return this.http.get<any>(`${this.baseUrl}/drivers`, { params }).pipe(
       map((response) => {
         const list = Array.isArray(response)
           ? response

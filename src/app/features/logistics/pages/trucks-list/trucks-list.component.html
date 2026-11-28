@@ -48,16 +48,18 @@
       Solo activos
     </button>
 
-    @if (showBranchScope) {
-      <button
-        type="button"
-        class="trucks-active-btn"
-        [class.trucks-active-btn--on]="onlyMyBranches"
-        [attr.aria-pressed]="onlyMyBranches"
-        (click)="onOnlyMyBranchesChange(!onlyMyBranches)"
+    @if (branchScope.ready() && branchScope.options().length) {
+      <select
+        class="logistics-select logistics-toolbar__select"
+        aria-label="Sucursal"
+        [disabled]="branchScope.options().length <= 1"
+        [value]="branchScope.selectedId()"
+        (change)="onBranchChange($any($event.target).value)"
       >
-        {{ onlyMyBranches ? 'Mis sucursales' : 'Todas las sucursales' }}
-      </button>
+        @for (option of branchScope.options(); track option.id) {
+          <option [value]="option.id" [selected]="option.id === branchScope.selectedId()">{{ option.label }}</option>
+        }
+      </select>
     }
 
     <app-filter-clear-button [active]="hasActiveFilters" (clear)="clearFilters()">
