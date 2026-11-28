@@ -48,6 +48,8 @@ export interface IColumn {
   width?: number;
   sortable?: boolean;
   canAutoResize?: boolean;
+  /** Texto del hover del encabezado, cuando el nombre de la columna es corto. */
+  headerTitle?: string;
 }
 
 /**

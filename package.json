@@ -1,6 +1,6 @@
 {
   "name": "sinergy-erp-frontend-clients",
-  "version": "0.0.214",
+  "version": "0.0.215",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",

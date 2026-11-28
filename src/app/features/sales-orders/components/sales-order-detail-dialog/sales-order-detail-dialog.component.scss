@@ -636,6 +636,18 @@ button.ship-flag {
   overflow-x: auto;
 }
 
+@media (min-width: 1800px) {
+  .products-table-wrap {
+    max-width: 1080px;
+  }
+
+  .products-table {
+    width: max-content;
+    max-width: 1080px;
+    min-width: 720px;
+  }
+}
+
 .products-table {
   width: 100%;
   min-width: 720px;

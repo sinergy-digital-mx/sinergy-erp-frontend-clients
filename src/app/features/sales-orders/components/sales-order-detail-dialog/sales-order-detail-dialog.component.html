@@ -276,8 +276,7 @@
           </button>
         }
 
-        <div class="section-card">
-          <h3 class="section-title">FECHAS</h3>
+        <div class="section-card section-card--dates">
           <div class="section-item">
             <span class="section-label">Fecha orden</span>
             <span class="section-value">{{ formatShortDate(order()!.created_at) }}</span>
@@ -497,12 +496,6 @@
           <div class="section-header">
             <div class="section-header__title">
               <h3 class="section-title">TOTALES</h3>
-              <span
-                class="currency-badge currency-badge--order"
-                [class.currency-badge--usd]="documentCurrency() === 'USD'"
-                [title]="orderCurrencyLabel()">
-                {{ orderCurrencyLabel() }}
-              </span>
             </div>
             <div class="toggle-container">
               <button

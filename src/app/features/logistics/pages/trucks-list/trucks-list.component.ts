@@ -47,12 +47,17 @@ export class TrucksListComponent implements OnDestroy {
     rows: [],
     columns: [
       { name: '', prop: 'photo', sortable: false, canAutoResize: false, width: 56 },
-      { name: 'Nombre', prop: 'name', sortable: false, canAutoResize: true, width: 180 },
+      { name: 'Nombre', prop: 'name', sortable: false, canAutoResize: true, width: 200 },
       { name: 'Placa', prop: 'placa', sortable: false, canAutoResize: true, width: 120 },
-      { name: 'Remolque', prop: 'remolque', sortable: false, canAutoResize: true, width: 160 },
-      { name: 'Núm. serie', prop: 'serial_number', sortable: false, canAutoResize: true, width: 160 },
-      { name: 'Año', prop: 'anio', sortable: false, canAutoResize: true, width: 80 },
-      { name: 'Carta porte', prop: 'carta_porte', sortable: false, canAutoResize: true, width: 140 },
+      { name: 'Sucursal', prop: 'branch', sortable: false, canAutoResize: true, width: 180 },
+      {
+        name: 'CP',
+        prop: 'carta_porte',
+        sortable: false,
+        canAutoResize: true,
+        width: 130,
+        headerTitle: 'Puede hacer carta porte',
+      },
       { name: 'Uso', prop: 'usage', sortable: false, canAutoResize: false, width: 176 },
       { name: 'Estado', prop: 'status', sortable: false, canAutoResize: true, width: 100 },
       { name: 'Acciones', prop: 'actions', sortable: false, canAutoResize: true, width: 200 },
@@ -351,16 +356,28 @@ export class TrucksListComponent implements OnDestroy {
       : 'dt-status-pill dt-status-pill--neutral';
   }
 
-  trailerOf(row: Truck): string {
-    const type = row?.subtipo_remolque1?.trim();
-    const plate = row?.placa_remolque1?.trim();
-    if (type && plate) return `${type} · ${plate}`;
-    return type || plate || '—';
+  cartaPorteTitle(truck: Truck): string {
+    if (truck.carta_porte_ready) return 'Puede hacer carta porte. Completa.';
+    const missing = (truck.carta_porte_missing ?? []).map((item) => item.trim()).filter(Boolean);
+    return missing.length
+      ? `Puede hacer carta porte. No completa: ${missing.join('. ')}`
+      : 'Puede hacer carta porte. No completa.';
   }
 
-  serialNumberOf(row: Truck): string {
-    const value = row?.serial_number;
-    if (value == null || String(value).trim() === '') return '—';
-    return String(value);
+  /** Prefijo razón social + sucursal, p. ej. MAD-CUN. */
+  branchMark(truck: Truck): string {
+    const fiscal = truck.default_billing_fiscal_prefix?.trim().toUpperCase() || '';
+    const branch = truck.default_billing_branch_prefix?.trim().toUpperCase() || '';
+    if (fiscal && branch) return `${fiscal}-${branch}`;
+    return fiscal || branch;
+  }
+
+  branchTitle(truck: Truck): string {
+    const name = truck.default_billing_branch_name?.trim();
+    if (!name) return 'Sin sucursal';
+    const razon = truck.default_billing_razon_social?.trim();
+    const mark = this.branchMark(truck);
+    const place = [razon, name].filter(Boolean).join(' · ');
+    return mark ? `${place} (${mark})` : place;
   }
 }

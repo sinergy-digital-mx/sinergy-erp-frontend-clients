@@ -86,26 +86,30 @@
   </td>
   <td>
     <p class="dt-cell-primary m-0 truncate">{{ item.name }}</p>
-    <p class="dt-cell-subtle m-0 truncate">{{ item.default_billing_branch_name || 'Sin sucursal' }}</p>
   </td>
   <td>
     <span class="dt-folio-badge">{{ item.placa }}</span>
   </td>
   <td>
-    <p class="m-0" [class]="trailerOf(item) === '—' ? 'dt-cell-subtle' : 'dt-cell-muted'">{{ trailerOf(item) }}</p>
-  </td>
-  <td>
-    <p class="m-0" [class]="serialNumberOf(item) === '—' ? 'dt-cell-subtle' : 'dt-cell-muted'">{{ serialNumberOf(item) }}</p>
-  </td>
-  <td>
-    <p class="m-0" [class]="item.anio ? 'dt-cell-muted' : 'dt-cell-subtle'">{{ item.anio || '—' }}</p>
+    <div class="truck-branch" [title]="branchTitle(item)">
+      <p
+        class="m-0 truncate"
+        [class.dt-cell-primary]="!!item.default_billing_branch_name"
+        [class.dt-cell-subtle]="!item.default_billing_branch_name"
+      >
+        {{ item.default_billing_branch_name || 'Sin sucursal' }}
+      </p>
+      @if (branchMark(item)) {
+        <span class="truck-branch__mark">{{ branchMark(item) }}</span>
+      }
+    </div>
   </td>
   <td>
     <span
       class="dt-status-pill"
       [class.dt-status-pill--success]="item.carta_porte_ready"
       [class.dt-status-pill--warning]="!item.carta_porte_ready"
-      [title]="(item.carta_porte_missing || []).join('. ')"
+      [title]="cartaPorteTitle(item)"
     >
       {{ item.carta_porte_ready ? 'Completo' : 'No completo' }}
     </span>

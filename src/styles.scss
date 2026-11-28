@@ -444,6 +444,15 @@ main,
   max-height: calc(100dvh - 0.75rem) !important;
 }
 
+/* 27" 1440p y más ancho: el detalle de OV no sigue creciendo. */
+@media (min-width: 1800px) {
+  .cdk-overlay-pane.order-detail-dialog-container:has(app-sales-order-detail-dialog),
+  .mat-mdc-dialog-panel.order-detail-dialog-container:has(app-sales-order-detail-dialog) {
+    width: min(1560px, calc(100vw - 2rem)) !important;
+    max-width: min(1560px, calc(100vw - 2rem)) !important;
+  }
+}
+
 .mat-mdc-dialog-container:has(.order-detail-dialog) {
   width: 100% !important;
   height: 100% !important;
@@ -1044,6 +1053,14 @@ main,
     max-width: calc(100% - 0.75rem) !important;
     height: calc(100% - 0.75rem) !important;
     max-height: calc(100% - 0.75rem) !important;
+  }
+
+  @media (min-width: 1800px) {
+    .cdk-overlay-pane.order-detail-dialog-container:has(app-sales-order-detail-dialog),
+    .mat-mdc-dialog-panel.order-detail-dialog-container:has(app-sales-order-detail-dialog) {
+      width: min(1560px, calc(100% - 2rem)) !important;
+      max-width: min(1560px, calc(100% - 2rem)) !important;
+    }
   }
 
   .cdk-overlay-popover {

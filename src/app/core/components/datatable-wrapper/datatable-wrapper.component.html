@@ -29,7 +29,10 @@
               [ngClass]="getSortIndicatorClass(column)"
               [style.cursor]="column.sortable ? 'pointer' : 'default'"
               (click)="column.sortable && onSortChange({ column: column })">
-            <span class="column-header">
+            <span
+              class="column-header"
+              [class.column-header--hint]="!!column.headerTitle"
+              [attr.title]="column.headerTitle || null">
               {{ column.name }}
               <span class="sort-indicator" *ngIf="isColumnSorted(column)">
                 {{ getSortIndicator(column) }}

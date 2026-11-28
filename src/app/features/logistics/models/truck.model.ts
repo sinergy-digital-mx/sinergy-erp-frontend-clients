@@ -23,6 +23,11 @@ export interface Truck {
   gps_unit_name?: string | null;
   default_billing_branch_id?: string | null;
   default_billing_branch_name?: string | null;
+  /** Prefijo corto de la sucursal. */
+  default_billing_branch_prefix?: string | null;
+  /** Prefijo corto de la razón social de esa sucursal. */
+  default_billing_fiscal_prefix?: string | null;
+  default_billing_razon_social?: string | null;
   /** Envío Creado o En Ruta que ya usa esta unidad. */
   active_shipping_id?: string | null;
   active_shipping_status?: string | null;
