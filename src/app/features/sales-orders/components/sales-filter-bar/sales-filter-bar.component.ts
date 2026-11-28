@@ -9,7 +9,7 @@ import { FiscalConfigurationService } from '../../../settings/services/fiscal-co
 import { BranchService } from '../../../settings/services/branch.service';
 import { FiscalConfiguration } from '../../../settings/models/fiscal-configuration.model';
 import { Branch } from '../../../settings/models/branch.model';
-import { formatPosUser } from '../../utils/pos-user-display.util';
+import { formatPosUserName } from '../../utils/pos-user-display.util';
 import { CustomerService } from '../../../../core/services/customer.service';
 
 interface CustomerFilterOption {
@@ -485,7 +485,7 @@ export class SalesFilterBarComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   sellerOptionLabel(seller: PosUserSummary): string {
-    return formatPosUser(seller);
+    return formatPosUserName(seller);
   }
 
   private lookupCustomers(value: string) {

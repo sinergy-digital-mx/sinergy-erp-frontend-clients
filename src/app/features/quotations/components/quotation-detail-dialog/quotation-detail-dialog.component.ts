@@ -30,7 +30,7 @@ import {
   resolveSalesOrderCustomerId,
   resolveSalesOrderCustomerName,
 } from '../../../sales-orders/utils/customer-display.util';
-import { formatPosUser } from '../../../sales-orders/utils/pos-user-display.util';
+import { formatPosUser, formatPosUserName } from '../../../sales-orders/utils/pos-user-display.util';
 import {
   getSalesOrderDocumentChipLabel,
   getSalesOrderDocumentKind,
@@ -291,7 +291,7 @@ export class QuotationDetailDialogComponent implements OnInit {
   }
 
   getSellerDisplayName(): string {
-    return formatPosUser(this.header()?.seller_user ?? undefined);
+    return formatPosUserName(this.header()?.seller_user ?? undefined);
   }
 
   getAssignedSellerDisplayName(): string {

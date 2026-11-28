@@ -1,5 +1,9 @@
 # UI — Listado de cotizaciones
 
+## 2026-11-27 — Vendedor sin código
+
+La columna Vendedor, la tarjeta móvil y el filtro de vendedor muestran el nombre, sin el código entre paréntesis.
+
 ## 2026-11-25 — Búsqueda y filtros en la URL
 
 Búsqueda, razón social, sucursal, estado, tipo, fechas, vendedor y página quedan en la query de `/quotations`. Al refrescar se restauran en la barra y en el listado.

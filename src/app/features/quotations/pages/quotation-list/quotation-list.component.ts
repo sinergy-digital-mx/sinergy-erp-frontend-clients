@@ -18,7 +18,7 @@ import { formatApiDate } from '../../../../core/utils/api-datetime.util';
 import { QUOTATION_PERMISSIONS } from '../../config/permissions.config';
 import { ListStatCard, ListStatStripComponent } from '../../../../core/components/list-stat-strip/list-stat-strip.component';
 import { ChevronRight, CircleDollarSign, ClipboardList, FileText, LucideAngularModule, Package, ShoppingBag } from 'lucide-angular';
-import { formatPosUser } from '../../../sales-orders/utils/pos-user-display.util';
+import { formatPosUserName } from '../../../sales-orders/utils/pos-user-display.util';
 import { PosUserSummary } from '../../../sales-orders/models/sales-order.model';
 import {
   getSalesOrderListBranchLabel,
@@ -370,7 +370,7 @@ export class QuotationListComponent implements OnInit {
   }
 
   sellerLabel(row: Quotation): string {
-    return formatPosUser(row.assigned_seller_user ?? row.seller_user ?? undefined);
+    return formatPosUserName(row.assigned_seller_user ?? row.seller_user ?? undefined);
   }
 
   statusClass(status: string): string {

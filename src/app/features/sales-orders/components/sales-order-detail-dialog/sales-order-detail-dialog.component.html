@@ -589,6 +589,7 @@
         }
 
         @if (showCancelOrderButton() || order()!.can_send_to_collection || order()!.can_withdraw_from_collection || order()!.can_stamp_advance) {
+          <div class="sidebar-spacer" aria-hidden="true"></div>
           <div class="action-buttons">
             @if (order()!.can_stamp_advance) {
               <button type="button" class="btn-convert-order" (click)="openAdvanceInvoice()">

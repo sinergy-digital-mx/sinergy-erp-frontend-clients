@@ -282,23 +282,45 @@
           </section>
         }
 
-        @if (header()!.advance_payment; as payment) {
-          <p class="advance-payment-note">
-            Cobrado en el corte{{ payment.shift_date ? ' del ' + payment.shift_date : '' }}:
-            {{ payment.amount_mxn | number:'1.2-2' }} MXN en {{ payment.payment_method_label }}.
-          </p>
+        @if (advanceStep() > 0) {
+          <section class="advance-flow">
+            @if (header()!.advance_payment; as payment) {
+              <div class="advance-flow__pay">
+                <span class="advance-flow__amount">{{ payment.amount_mxn | number:'1.2-2' }}</span>
+                <span class="advance-flow__currency">MXN</span>
+                <span class="advance-flow__meta">
+                  {{ payment.payment_method_label }}
+                  @if (payment.shift_date) {
+                    · corte {{ formatShortDate(payment.shift_date) }}
+                  }
+                </span>
+              </div>
+            }
+            <ol class="advance-flow__steps">
+              <li [class.is-done]="advanceStep() > 1" [class.is-current]="advanceStep() === 1">
+                <span class="advance-flow__mark"></span>
+                <span>Anticipo</span>
+              </li>
+              <li [class.is-done]="advanceStep() > 2" [class.is-current]="advanceStep() === 2">
+                <span class="advance-flow__mark"></span>
+                <span>Cobrado en caja</span>
+              </li>
+              <li [class.is-done]="advanceStep() > 3" [class.is-current]="advanceStep() === 3">
+                <span class="advance-flow__mark"></span>
+                <span>Venta</span>
+              </li>
+              <li [class.is-done]="advanceStep() >= 4">
+                <span class="advance-flow__mark"></span>
+                <span>Factura ligada</span>
+              </li>
+            </ol>
+            @if (advanceStep() === 1 && !header()!.advance_invoice) {
+              <p class="advance-flow__note">Está en la caja de la sucursal. La factura sale cuando cobran.</p>
+            }
+          </section>
         }
 
-        <ol class="advance-steps">
-          <li [class.is-done]="advanceStep() >= 1">1. Anticipo</li>
-          <li [class.is-done]="advanceStep() >= 2">2. Cobrado en caja</li>
-          <li [class.is-done]="advanceStep() >= 3">3. Venta</li>
-          <li [class.is-done]="advanceStep() >= 4">4. Factura ligada</li>
-        </ol>
-        @if (advanceStep() === 1 && !header()!.advance_invoice) {
-          <p class="advance-step-note">Está en la caja de la sucursal. La factura sale cuando cobran.</p>
-        }
-
+        <div class="sidebar-spacer" aria-hidden="true"></div>
         <div class="action-buttons">
           @if (canAskAdvance()) {
             <button type="button" class="btn-convert-order" (click)="askAdvance()">

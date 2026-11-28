@@ -1,32 +1,26 @@
 {
-  "version": "0.0.215",
-  "buildId": "0.0.215-1795824835855",
-  "builtAt": "2026-11-28T00:13:55.855Z",
+  "version": "0.0.216",
+  "buildId": "0.0.216-1795827719619",
+  "builtAt": "2026-11-28T01:01:59.619Z",
   "channel": "full",
   "changes": [
     {
       "scope": "frontend",
-      "message": "En el detalle de la orden, el bloque de totales ya no muestra el texto de la moneda.",
-      "module": "sales-orders",
-      "moduleLabel": "Órdenes de venta"
+      "message": "En el detalle, el anticipo muestra el monto y los pasos en una línea vertical, no en cuatro cuadros.",
+      "module": "quotations",
+      "moduleLabel": "Cotizaciones"
     },
     {
       "scope": "frontend",
-      "message": "En flota se quitaron remolque, número de serie y año; carta porte se ve como CP y la sucursal muestra su nombre con el prefijo de la razón social.",
-      "module": "logistics",
-      "moduleLabel": "Logística"
+      "message": "En el detalle, los botones del lateral quedan pegados al fondo y el conteo de la pestaña activa va en azul.",
+      "module": "quotations",
+      "moduleLabel": "Cotizaciones"
     },
     {
       "scope": "frontend",
-      "message": "En el detalle de la orden, el bloque de fechas ya no lleva título y las filas quedan más compactas.",
-      "module": "sales-orders",
-      "moduleLabel": "Órdenes de venta"
-    },
-    {
-      "scope": "frontend",
-      "message": "En pantallas anchas el detalle de la orden deja de crecer y la tabla de productos se queda en un ancho fijo para seguir las filas.",
-      "module": "sales-orders",
-      "moduleLabel": "Órdenes de venta"
+      "message": "En cotizaciones el vendedor se muestra sin el código.",
+      "module": "quotations",
+      "moduleLabel": "Cotizaciones"
     }
   ]
 }
